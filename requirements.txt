@@ -1,0 +1,8 @@
+keras
+tensorflow
+requests
+PyFunctional
+mcerp
+pymc3
+arviz
+python-grid5000
