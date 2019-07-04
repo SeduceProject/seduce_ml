@@ -7,7 +7,7 @@ from scipy.optimize import curve_fit
 import math
 from itertools import chain
 
-from lib.data.seduce_data_loader import NORMALIZATION_COOLING, NORMALIZATION_SERVER, generate_real_consumption_data, cluster_average_back_temperature
+from lib.data.seduce_data_loader import NORMALIZATION_COOLING, NORMALIZATION_SERVER, generate_real_consumption_data, cluster_average_temperature, normalize_cooling
 
 # ORACLE_DUMP_PATH = "'/Users/jonathan/seduceml3.h5'"
 # ORACLE_DUMP_PATH = "data/seduceml_2019_06_17_T_11_28_30.h5"
@@ -496,7 +496,7 @@ if __name__ == "__main__":
             show_progress=False
         )
 
-        colors = cluster_average_back_temperature(start_epoch, end_epoch, side="back") # Class by back temperature
+        colors = cluster_average_temperature(start_epoch, end_epoch, side="back") # Class by back temperature
         # colors = cluster_average_back_temperature(start_epoch, end_epoch, side="front") # Class by front temperature
         # colors = list(range(0, 12)) * 4 # Class by position
         # colors = [1] * 12 + [2] * 12 + [3] * 12 + [4] * 12 # Class by position
@@ -505,7 +505,7 @@ if __name__ == "__main__":
 
         test = np.array([normalised_power_consumption_interpolated_values])
         test_with_temperature = np.array([normalised_power_consumption_interpolated_values + [ext_temp_during_exp]])
-        prediction = oracle.predict(test_with_temperature)[0][0] * NORMALIZATION_COOLING
+        prediction = normalize_cooling(oracle.predict(test_with_temperature)[0][0])
 
         # remove last item which contains the external temperature
         consumption_data = real_power_consumption[0][0][:-1]
@@ -516,7 +516,7 @@ if __name__ == "__main__":
         n += [pos for pos in range(1, 1 + (len(loads_values)))]
 
         prediction_real_data = oracle.predict(np.array([real_power_consumption[0][0]]))[0][0]
-        denormalized_prediction_real_data = prediction_real_data * NORMALIZATION_COOLING
+        denormalized_prediction_real_data = normalize_cooling(prediction_real_data)
 
         stupid_prediction = np.mean(consumption_data) * 48 * NORMALIZATION_SERVER / 6067 * 3786
 

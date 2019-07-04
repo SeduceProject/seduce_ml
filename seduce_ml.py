@@ -1,7 +1,7 @@
 import sys
 from lib.deeplearning.oracle import build_oracle, train_oracle
-from lib.data.seduce_data_loader import simulate_consumption_function, generate_fake_consumption_data, generate_real_consumption_data
-from lib.data.seduce_data_loader import NORMALIZATION_COOLING, NORMALIZATION_SERVER
+from lib.data.seduce_data_loader import simulate_consumption_function, generate_fake_consumption_data, generate_real_consumption_data, average_temperature_aggregated_by_minute
+from lib.data.seduce_data_loader import NORMALIZATION_COOLING, NORMALIZATION_SERVER, normalize_cooling, denormalize_temperature
 from keras.layers import Activation
 from keras import backend as K
 from keras.utils.generic_utils import get_custom_objects
@@ -100,9 +100,9 @@ if __name__ == "__main__":
             signed_differences = []
             for idx in range(0, len(y)):
                 test_input = np.array([x[idx]])
-                expected_value = y[idx]
+                expected_value = denormalize_temperature(y[idx])
 
-                result = oracle.predict(test_input)[0][0]
+                result = denormalize_temperature(oracle.predict(test_input)[0][0])
 
                 # difference = math.sqrt((result - expected_value) * (result - expected_value))
                 difference = math.sqrt((result - expected_value) * (result - expected_value))
@@ -111,16 +111,16 @@ if __name__ == "__main__":
                 # if result > 0.30:
                 differences += [difference]
 
-                if difference * NORMALIZATION_COOLING >= 200:
-                    print("%s: expected:%s --> predicted:%s (%s)" % (np.mean(test_input), expected_value * NORMALIZATION_COOLING, result * NORMALIZATION_COOLING, tss[idx]))
+                if difference >= 1.0:
+                    print("%s: expected:%s --> predicted:%s (%s)" % (np.mean(test_input), normalize_cooling(expected_value), normalize_cooling(result), tss[idx]))
                     prediction_failed += 1
             # std = math.sqrt(sum_squared_difference / len(y))
             print("%s / %s prediction were too far from real data" % (prediction_failed, len(y)))
 
-            average_difference = float(np.mean(differences)) * NORMALIZATION_COOLING
+            average_difference = normalize_cooling(float(np.mean(differences)))
             print("average difference: %s" % (average_difference))
 
-            average_signed_difference = float(np.mean(signed_differences)) * NORMALIZATION_COOLING
+            average_signed_difference = normalize_cooling(float(np.mean(signed_differences)))
             print("average signed difference: %s" % (average_signed_difference))
 
             differences_after_correction = []
@@ -133,22 +133,22 @@ if __name__ == "__main__":
             adjusted_prediction_failed = 0
             for idx in range(0, len(y)):
                 test_input = np.array([x[idx]])
-                expected_value = y[idx]
+                expected_value = denormalize_temperature(y[idx])
 
-                result = oracle.predict(test_input)[0][0]
+                result = denormalize_temperature(oracle.predict(test_input)[0][0])
 
                 # difference = math.sqrt((result - expected_value) * (result - expected_value))
                 difference = math.sqrt((result - expected_value) * (result - expected_value))
 
                 differences_after_correction += [difference]
 
-                if difference * NORMALIZATION_COOLING >= 200:
-                    print("%s: expected:%s --> adjusted_predicted:%s (%s)" % (np.mean(test_input), expected_value * NORMALIZATION_COOLING, result * NORMALIZATION_COOLING, tss[idx]))
+                if difference > 1.0:
+                    print("%s: expected:%s --> adjusted_predicted:%s (%s)" % (np.mean(test_input), normalize_cooling(expected_value), normalize_cooling(result), tss[idx]))
                     adjusted_prediction_failed += 1
             # std = math.sqrt(sum_squared_difference / len(y))
             print("%s / %s adjusted prediction were too far from real data" % (adjusted_prediction_failed, len(y)))
 
-            average_difference_after_correction = float(np.mean(differences_after_correction)) * NORMALIZATION_COOLING
+            average_difference_after_correction = normalize_cooling(float(np.mean(differences_after_correction)))
             print("average difference after correction: %s" % (average_difference_after_correction))
 
             averages_differences += [average_difference]
