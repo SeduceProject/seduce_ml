@@ -112,7 +112,7 @@ if __name__ == "__main__":
                 differences += [difference]
 
                 if difference >= 1.0:
-                    print("%s: expected:%s --> predicted:%s (%s)" % (np.mean(test_input), normalize_cooling(expected_value), normalize_cooling(result), tss[idx]))
+                    print("%s: expected:%s --> predicted:%s (%s)" % (np.mean(test_input) * NORMALIZATION_SERVER, expected_value, result, tss[idx]))
                     prediction_failed += 1
             # std = math.sqrt(sum_squared_difference / len(y))
             print("%s / %s prediction were too far from real data" % (prediction_failed, len(y)))
@@ -143,7 +143,7 @@ if __name__ == "__main__":
                 differences_after_correction += [difference]
 
                 if difference > 1.0:
-                    print("%s: expected:%s --> adjusted_predicted:%s (%s)" % (np.mean(test_input), normalize_cooling(expected_value), normalize_cooling(result), tss[idx]))
+                    print("%s: expected:%s --> adjusted_predicted:%s (%s)" % (np.mean(test_input) * NORMALIZATION_SERVER, expected_value, result, tss[idx]))
                     adjusted_prediction_failed += 1
             # std = math.sqrt(sum_squared_difference / len(y))
             print("%s / %s adjusted prediction were too far from real data" % (adjusted_prediction_failed, len(y)))
