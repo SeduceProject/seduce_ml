@@ -31,13 +31,13 @@ if __name__ == "__main__":
     print("Hello from seduce ML")
 
     nb_servers = 48
-    nb_run = 50
+    nb_run = 1
 
     train = True
 
     if train:
 
-
+        best_plot_data = []
         scores = []
         averages_differences = []
         averages_differences_after_correction = []
@@ -50,6 +50,8 @@ if __name__ == "__main__":
         for i in range(0, nb_run):
             # Display a message
             print("Run %s/%s" % (i, 50))
+
+            plot_data = []
 
             # Build the neural network
             oracle = build_oracle(nb_servers)
@@ -64,7 +66,7 @@ if __name__ == "__main__":
             ###################
             # # USE REAL DATA
             x, y, tss = generate_real_consumption_data()
-            train_proportion = 0.5
+            train_proportion = 0.8
             train_probe_size = int(len(x) * train_proportion)
             x_train, y_train = x[train_probe_size:], y[train_probe_size:]
             x_test, y_test = x[:train_probe_size], y[:train_probe_size]
@@ -101,7 +103,6 @@ if __name__ == "__main__":
             for idx in range(0, len(y)):
                 test_input = np.array([x[idx]])
                 expected_value = denormalize_temperature(y[idx])
-
                 result = denormalize_temperature(oracle.predict(test_input)[0][0])
 
                 # difference = math.sqrt((result - expected_value) * (result - expected_value))
@@ -117,15 +118,15 @@ if __name__ == "__main__":
             # std = math.sqrt(sum_squared_difference / len(y))
             print("%s / %s prediction were too far from real data" % (prediction_failed, len(y)))
 
-            average_difference = normalize_cooling(float(np.mean(differences)))
+            average_difference = float(np.mean(differences))
             print("average difference: %s" % (average_difference))
 
-            average_signed_difference = normalize_cooling(float(np.mean(signed_differences)))
+            average_signed_difference = float(np.mean(signed_differences))
             print("average signed difference: %s" % (average_signed_difference))
 
             differences_after_correction = []
 
-            oracle.add(keras.layers.Lambda(lambda x, k: x - k, arguments={"k": average_signed_difference / NORMALIZATION_COOLING}))
+            oracle.add(keras.layers.Lambda(lambda x, k: x - k, arguments={"k": normalize_cooling(average_signed_difference)}))
 
             oracle.compile(optimizer='rmsprop',
                            loss='mse')
@@ -145,6 +146,12 @@ if __name__ == "__main__":
                 if difference > 1.0:
                     print("%s: expected:%s --> adjusted_predicted:%s (%s)" % (np.mean(test_input) * NORMALIZATION_SERVER, expected_value, result, tss[idx]))
                     adjusted_prediction_failed += 1
+
+                plot_data += [{
+                    "x": idx,
+                    "y_actual": expected_value,
+                    "y_pred": result
+                }]
             # std = math.sqrt(sum_squared_difference / len(y))
             print("%s / %s adjusted prediction were too far from real data" % (adjusted_prediction_failed, len(y)))
 
@@ -161,10 +168,12 @@ if __name__ == "__main__":
             if best_difference is None or average_difference < best_difference:
                 best_difference = average_difference
                 # best_oracle = oracle
+                # best_plot_data = plot_data
 
             if best_difference_after_correction is None or average_difference_after_correction < best_difference_after_correction:
                 best_signed_difference = average_difference_after_correction
                 best_oracle = oracle
+                best_plot_data = plot_data
 
         mean_difference = float(np.mean(averages_differences))
         mean_score = float(np.mean(score))
@@ -183,5 +192,24 @@ if __name__ == "__main__":
     date_str = time.strftime("%Y_%m_%d_T_%H_%M_%S", time.localtime(epoch))
 
     oracle.save("data/seduceml_%s.h5" % date_str)
+
+    # Draw the comparison between actual data and prediction:
+    # sorted_plot_data = sorted(best_plot_data, key=lambda d: d["y_actual"])
+    sorted_plot_data = sorted(best_plot_data, key=lambda d: d["x"])
+
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure()
+    ax = plt.axes()
+
+    x_data = [d["x"] for d in sorted_plot_data]
+    y1_data = [d["y_actual"] for d in sorted_plot_data]
+    y2_data = [d["y_pred"] for d in sorted_plot_data]
+    x_data = range(0, len(y1_data))
+
+    ax.plot(x_data, y1_data, color='blue')
+    ax.plot(x_data, y2_data, color='red')
+
+    plt.show()
 
     sys.exit(0)

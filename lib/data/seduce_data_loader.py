@@ -96,14 +96,15 @@ def average_temperature_aggregated_by_minute(start_epoch, end_epoch, side="back"
 def generate_real_consumption_data(start_date=None, end_date=None, show_progress=True):
 
     if start_date is None:
-        start_date = "2019-05-24T08:00:00.000Z"
-        # start_date = "2019-06-29T06:00:00.000Z"
+        # start_date = "2019-05-24T08:00:00.000Z"
+        start_date = "2019-07-06T06:00:00.000Z"
     if end_date is None:
         # end_date = "2019-06-11T08:00:00.000Z"
-        end_date = "2019-07-04T09:09:35.000Z"
+        end_date = "2019-07-07T09:09:35.000Z"
 
     # Group node data every 120 minutes
-    group_by = 2 * 60
+    group_by = 15
+    # group_by = 2 * 60
 
     resp = requests.get("https://api.seduce.fr/power_infrastructure/description/tree")
     servers_names_raw = resp.json()['children'][0]['children'][1]['children'][1]['node'].get("children")
@@ -204,8 +205,12 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
                         else:
                             print("-", end="")
 
+                        # We were doing mean(max(data))
                         data_in_current_range = [x[1] for x in zip(back_temperature_data_structure_timestamps, back_temperature_data_structure.get("maxs")) if x[0] >= start_epoch and x[0] <= start_epoch + group_by * 60]
-                        mean_current_range = np.mean(data_in_current_range)
+                        mean_current_range = np.mean([x for x in data_in_current_range if x is not None])
+                        # # I will do mean(std(data))
+                        # data_in_current_range = [x[1] for x in zip(back_temperature_data_structure_timestamps, back_temperature_data_structure.get("means")) if x[0] >= start_epoch and x[0] <= start_epoch + group_by * 60]
+                        # mean_current_range = np.max([x for x in data_in_current_range if x is not None])
                         if node_name != "back_temperature":
                             print("*", end="")
 
