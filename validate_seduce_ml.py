@@ -7,7 +7,7 @@ from scipy.optimize import curve_fit
 import math
 from itertools import chain
 
-from lib.data.seduce_data_loader import NORMALIZATION_COOLING, NORMALIZATION_SERVER, generate_real_consumption_data, cluster_average_temperature, normalize_cooling
+from lib.data.seduce_data_loader import generate_real_consumption_data, cluster_average_temperature,
 
 # ORACLE_DUMP_PATH = "'/Users/jonathan/seduceml3.h5'"
 # ORACLE_DUMP_PATH = "data/seduceml_2019_06_17_T_11_28_30.h5"
@@ -476,7 +476,7 @@ if __name__ == "__main__":
 
         loads_values = data.get("loads_values")
         power_consumption_interpolated_values = [load_to_power_consumption(load_value) for load_value in loads_values]
-        normalised_power_consumption_interpolated_values = [load_value / NORMALIZATION_SERVER for load_value in power_consumption_interpolated_values]
+        normalised_power_consumption_interpolated_values = [load_value for load_value in power_consumption_interpolated_values]
 
         exp_consumption = data.get("cooling_consumption")
         start_epoch = data.get("start_epoch")
@@ -511,14 +511,14 @@ if __name__ == "__main__":
         consumption_data = real_power_consumption[0][0][:-1]
 
         x += loads_values
-        y += list([c * NORMALIZATION_SERVER for c in consumption_data])
+        y += list([c for c in consumption_data])
         c += colors
         n += [pos for pos in range(1, 1 + (len(loads_values)))]
 
         prediction_real_data = oracle.predict(np.array([real_power_consumption[0][0]]))[0][0]
         denormalized_prediction_real_data = normalize_cooling(prediction_real_data)
 
-        stupid_prediction = np.mean(consumption_data) * 48 * NORMALIZATION_SERVER / 6067 * 3786
+        stupid_prediction = np.mean(consumption_data) * 48 / 6067 * 3786
 
         average_back_temperature = np.mean(colors)
         max_back_temperature = np.max(colors)
