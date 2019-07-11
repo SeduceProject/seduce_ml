@@ -198,7 +198,7 @@ if __name__ == "__main__":
 
     # Draw the comparison between actual data and prediction:
     # sorted_plot_data = sorted(best_plot_data, key=lambda d: d["y_actual"])
-    sorted_plot_data = sorted(best_plot_data, key=lambda d: d["x"])[2300:2800]
+    sorted_plot_data = sorted(best_plot_data, key=lambda d: d["x"])[100:300]
 
     import matplotlib.pyplot as plt
 

@@ -85,7 +85,7 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
         end_date = "2019-07-08T09:09:35.000Z"
 
     # Group node data every 120 minutes
-    group_by = 20
+    group_by = 60
     # group_by = 2 * 60
 
     seduce_infrastructure_tree = requests.get("https://api.seduce.fr/infrastructure/description/tree").json()
@@ -234,9 +234,10 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
         for server_name in servers_names:
             data_server = data["consumptions"][server_name]
 
-            data_server["means"] = [(1.0 * x - data["min_consumption"] ) / (data["max_consumption"] - data["min_consumption"]) for x in data_server["means"]]
-            data_server["temperatures"] = [(1.0 * x - data["min_temperature"] ) / (data["max_temperature"] - data["min_temperature"]) for x in data_server["temperatures"]]
-
+            data_server["means"] = [(1.0 * x - data["min_consumption"]) / (data["max_consumption"] - data["min_consumption"])
+                                    for x in data_server["means"]]
+            data_server["temperatures"] = [(1.0 * x - data["min_temperature"]) / (data["max_temperature"] - data["min_temperature"])
+                                           for x in data_server["temperatures"]]
 
         data["room_temperature"] = [tuple_2[1]
                                     for tuple_2 in zip(data["timestamps"], data["room_temperature"])
@@ -268,7 +269,7 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
     # Compute values that will be predicted
 
     def select_tuple_n(tuple_n):
-        return tuple_n[12]
+        return tuple_n[0]
         # return max(tuple_n)
         # return 30000
         # return sum(tuple_n)

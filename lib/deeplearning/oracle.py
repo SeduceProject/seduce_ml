@@ -8,6 +8,8 @@ def build_oracle(nb_servers):
         Activation('relu'),
         Dense(3),
         Activation('relu'),
+        Dense(2),
+        Activation('softmax'),
         # Dense(1),
         # Activation('relu'),
         # Dense(2),
