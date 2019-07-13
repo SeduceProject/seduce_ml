@@ -26,7 +26,7 @@ def build_oracle(nb_servers):
         # Activation('relu'),
         # Dense(64),
         # Activation('relu'),
-        Dense(output_dim=1, activation='linear')
+        Dense(output_dim=48, activation='linear')
         # Activation('softmax'),
     ])
 

@@ -269,7 +269,8 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
     # Compute values that will be predicted
 
     def select_tuple_n(tuple_n):
-        return tuple_n[0]
+        return list(tuple_n)
+        # return tuple_n[0]
         # return max(tuple_n)
         # return 30000
         # return sum(tuple_n)
@@ -283,15 +284,6 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
     y = np.array(raw_values_that_will_be_predicted)
 
     z = np.array(seq(temperatures).map(lambda x: x).to_list()).reshape(len(x), 1)
-    # y = z
-
     timestamps_labels = timestamps_with_all_data
-    # x_with_temperature = np.hstack((x, z))
-    # x_with_temperature = np.hstack((np.sum(x, axis=1).reshape(len(x), 1), z))
-
-    # x_ = x
-    # y_ = y
-
-    # x, y = generate_fake_consumption_data(48, 2000)
 
     return x, y, timestamps_labels, data
