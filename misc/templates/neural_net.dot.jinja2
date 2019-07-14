@@ -1,0 +1,31 @@
+digraph G {
+
+    rankdir=LR
+	splines=line
+    nodesep=.05;
+
+    node [label=""];
+
+    {% for layer in layers %}
+    subgraph {{ layer.name | replace(" ", "_") }} {
+		color=white;
+                node [style=solid,color=black, shape=circle];
+		{{ layer.nodes | join(" ") }};
+		label = "{{ layer.name }}";
+	}
+    {% endfor %}
+
+    {% for layer in layers %}
+
+        {% if loop.index0 > 0 %}
+            {% set previous_layer = layers[loop.index0-1] %}
+
+            {% for node in previous_layer.nodes %}
+                {% for node2 in layer.nodes %}
+                {{ node }} -> {{ node2 }};
+                {% endfor %}
+            {% endfor %}
+
+        {% endif %}
+    {% endfor %}
+}

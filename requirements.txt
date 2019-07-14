@@ -6,3 +6,4 @@ mcerp
 pymc3
 arviz
 python-grid5000
+jinja2

@@ -1,0 +1,267 @@
+digraph G {
+
+    rankdir=LR
+	splines=line
+    nodesep=.05;
+
+    node [label=""];
+
+    
+    subgraph input_layer {
+		color=white;
+                node [style=solid,color=black, shape=circle];
+		input_layer_1 input_layer_2 input_layer_3 input_layer_4;
+		label = "input layer";
+	}
+    
+    subgraph hidden_layer_1 {
+		color=white;
+                node [style=solid,color=black, shape=circle];
+		hidden_layer_1_1 hidden_layer_1_2 hidden_layer_1_3 hidden_layer_1_4 hidden_layer_1_5 hidden_layer_1_6;
+		label = "hidden layer 1";
+	}
+    
+    subgraph hidden_layer_2 {
+		color=white;
+                node [style=solid,color=black, shape=circle];
+		hidden_layer_2_1 hidden_layer_2_2 hidden_layer_2_3 hidden_layer_2_4 hidden_layer_2_5 hidden_layer_2_6;
+		label = "hidden layer 2";
+	}
+    
+    subgraph output_layer {
+		color=white;
+                node [style=solid,color=black, shape=circle];
+		output_layer_1 output_layer_2 output_layer_3 output_layer_4;
+		label = "output layer";
+	}
+    
+
+    
+
+        
+    
+
+        
+            
+
+            
+                
+                input_layer_1 -> hidden_layer_1_1;
+                
+                input_layer_1 -> hidden_layer_1_2;
+                
+                input_layer_1 -> hidden_layer_1_3;
+                
+                input_layer_1 -> hidden_layer_1_4;
+                
+                input_layer_1 -> hidden_layer_1_5;
+                
+                input_layer_1 -> hidden_layer_1_6;
+                
+            
+                
+                input_layer_2 -> hidden_layer_1_1;
+                
+                input_layer_2 -> hidden_layer_1_2;
+                
+                input_layer_2 -> hidden_layer_1_3;
+                
+                input_layer_2 -> hidden_layer_1_4;
+                
+                input_layer_2 -> hidden_layer_1_5;
+                
+                input_layer_2 -> hidden_layer_1_6;
+                
+            
+                
+                input_layer_3 -> hidden_layer_1_1;
+                
+                input_layer_3 -> hidden_layer_1_2;
+                
+                input_layer_3 -> hidden_layer_1_3;
+                
+                input_layer_3 -> hidden_layer_1_4;
+                
+                input_layer_3 -> hidden_layer_1_5;
+                
+                input_layer_3 -> hidden_layer_1_6;
+                
+            
+                
+                input_layer_4 -> hidden_layer_1_1;
+                
+                input_layer_4 -> hidden_layer_1_2;
+                
+                input_layer_4 -> hidden_layer_1_3;
+                
+                input_layer_4 -> hidden_layer_1_4;
+                
+                input_layer_4 -> hidden_layer_1_5;
+                
+                input_layer_4 -> hidden_layer_1_6;
+                
+            
+
+        
+    
+
+        
+            
+
+            
+                
+                hidden_layer_1_1 -> hidden_layer_2_1;
+                
+                hidden_layer_1_1 -> hidden_layer_2_2;
+                
+                hidden_layer_1_1 -> hidden_layer_2_3;
+                
+                hidden_layer_1_1 -> hidden_layer_2_4;
+                
+                hidden_layer_1_1 -> hidden_layer_2_5;
+                
+                hidden_layer_1_1 -> hidden_layer_2_6;
+                
+            
+                
+                hidden_layer_1_2 -> hidden_layer_2_1;
+                
+                hidden_layer_1_2 -> hidden_layer_2_2;
+                
+                hidden_layer_1_2 -> hidden_layer_2_3;
+                
+                hidden_layer_1_2 -> hidden_layer_2_4;
+                
+                hidden_layer_1_2 -> hidden_layer_2_5;
+                
+                hidden_layer_1_2 -> hidden_layer_2_6;
+                
+            
+                
+                hidden_layer_1_3 -> hidden_layer_2_1;
+                
+                hidden_layer_1_3 -> hidden_layer_2_2;
+                
+                hidden_layer_1_3 -> hidden_layer_2_3;
+                
+                hidden_layer_1_3 -> hidden_layer_2_4;
+                
+                hidden_layer_1_3 -> hidden_layer_2_5;
+                
+                hidden_layer_1_3 -> hidden_layer_2_6;
+                
+            
+                
+                hidden_layer_1_4 -> hidden_layer_2_1;
+                
+                hidden_layer_1_4 -> hidden_layer_2_2;
+                
+                hidden_layer_1_4 -> hidden_layer_2_3;
+                
+                hidden_layer_1_4 -> hidden_layer_2_4;
+                
+                hidden_layer_1_4 -> hidden_layer_2_5;
+                
+                hidden_layer_1_4 -> hidden_layer_2_6;
+                
+            
+                
+                hidden_layer_1_5 -> hidden_layer_2_1;
+                
+                hidden_layer_1_5 -> hidden_layer_2_2;
+                
+                hidden_layer_1_5 -> hidden_layer_2_3;
+                
+                hidden_layer_1_5 -> hidden_layer_2_4;
+                
+                hidden_layer_1_5 -> hidden_layer_2_5;
+                
+                hidden_layer_1_5 -> hidden_layer_2_6;
+                
+            
+                
+                hidden_layer_1_6 -> hidden_layer_2_1;
+                
+                hidden_layer_1_6 -> hidden_layer_2_2;
+                
+                hidden_layer_1_6 -> hidden_layer_2_3;
+                
+                hidden_layer_1_6 -> hidden_layer_2_4;
+                
+                hidden_layer_1_6 -> hidden_layer_2_5;
+                
+                hidden_layer_1_6 -> hidden_layer_2_6;
+                
+            
+
+        
+    
+
+        
+            
+
+            
+                
+                hidden_layer_2_1 -> output_layer_1;
+                
+                hidden_layer_2_1 -> output_layer_2;
+                
+                hidden_layer_2_1 -> output_layer_3;
+                
+                hidden_layer_2_1 -> output_layer_4;
+                
+            
+                
+                hidden_layer_2_2 -> output_layer_1;
+                
+                hidden_layer_2_2 -> output_layer_2;
+                
+                hidden_layer_2_2 -> output_layer_3;
+                
+                hidden_layer_2_2 -> output_layer_4;
+                
+            
+                
+                hidden_layer_2_3 -> output_layer_1;
+                
+                hidden_layer_2_3 -> output_layer_2;
+                
+                hidden_layer_2_3 -> output_layer_3;
+                
+                hidden_layer_2_3 -> output_layer_4;
+                
+            
+                
+                hidden_layer_2_4 -> output_layer_1;
+                
+                hidden_layer_2_4 -> output_layer_2;
+                
+                hidden_layer_2_4 -> output_layer_3;
+                
+                hidden_layer_2_4 -> output_layer_4;
+                
+            
+                
+                hidden_layer_2_5 -> output_layer_1;
+                
+                hidden_layer_2_5 -> output_layer_2;
+                
+                hidden_layer_2_5 -> output_layer_3;
+                
+                hidden_layer_2_5 -> output_layer_4;
+                
+            
+                
+                hidden_layer_2_6 -> output_layer_1;
+                
+                hidden_layer_2_6 -> output_layer_2;
+                
+                hidden_layer_2_6 -> output_layer_3;
+                
+                hidden_layer_2_6 -> output_layer_4;
+                
+            
+
+        
+    
+}
