@@ -270,6 +270,7 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
 
     def select_tuple_n(tuple_n):
         return list(tuple_n)
+        # return [tuple_n[35]]
         # return tuple_n[0]
         # return max(tuple_n)
         # return 30000

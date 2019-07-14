@@ -170,7 +170,7 @@ if __name__ == "__main__":
     fig = plt.figure()
     ax = plt.axes()
 
-    server_id = 1
+    server_id = 32
 
     x_data = [d["x"] for d in sorted_plot_data]
     y1_data = [d["y_actual"][server_id] * (best_data["max_temperature"] - best_data["min_temperature"]) + best_data["min_temperature"] for d in sorted_plot_data]

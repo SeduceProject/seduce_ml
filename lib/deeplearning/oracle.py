@@ -4,28 +4,12 @@ from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Dropout, Flatt
 
 def build_oracle(nb_servers):
     model = Sequential([
-        Dense(6, input_shape=(nb_servers,)),
+        Dense(256, input_shape=(nb_servers,)),
         Activation('relu'),
-        Dense(3),
+        Dense(256),
         Activation('relu'),
-        Dense(2),
-        Activation('softmax'),
-        # Dense(1),
-        # Activation('relu'),
-        # Dense(2),
-        # Activation('linear'),
-        # Dense(10),
-        # Activation('relu'),
-        # Dense(10),
-        # Activation('relu'),
-        # Dense(10),
-        # Activation('relu'),
-        # Dense(64),
-        # Activation('relu'),
-        # Dense(64),
-        # Activation('relu'),
-        # Dense(64),
-        # Activation('relu'),
+        Dense(256),
+        Activation('relu'),
         Dense(output_dim=48, activation='linear')
         # Activation('softmax'),
     ])
