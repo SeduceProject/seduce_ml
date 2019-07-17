@@ -7,25 +7,25 @@ digraph G {
     node [label=""];
 
     {% for layer in layers %}
-    subgraph {{ layer.name | replace(" ", "_") }} {
+    subgraph cluster_{{ loop.index0 }} {
 		color=white;
-                node [style=solid,color=black, shape=circle];
+        node [style=solid,color={% if loop.index0 == 0  or loop.index == layers|length %}red{% else %}blue{% endif %}, shape=circle];
 		{{ layer.nodes | join(" ") }};
 		label = "{{ layer.name }}";
 	}
     {% endfor %}
 
-    {% for layer in layers %}
+    {%- for layer in layers -%}
 
-        {% if loop.index0 > 0 %}
+        {% if loop.index0 > 0 -%}
             {% set previous_layer = layers[loop.index0-1] %}
 
             {% for node in previous_layer.nodes %}
-                {% for node2 in layer.nodes %}
+                {% for node2 in layer.nodes -%}
                 {{ node }} -> {{ node2 }};
                 {% endfor %}
             {% endfor %}
 
-        {% endif %}
+        {%- endif %}
     {% endfor %}
 }

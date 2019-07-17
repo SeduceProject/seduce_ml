@@ -14,7 +14,7 @@ def build_oracle(nb_servers):
         # Activation('softmax'),
     ])
 
-    model.compile(optimizer='rmsprop',
+    model.compile(optimizer='adam',
                   loss='mse')
 
     return model

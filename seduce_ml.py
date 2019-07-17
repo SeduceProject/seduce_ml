@@ -8,7 +8,7 @@ from keras.models import load_model
 from lib.deeplearning.oracle import build_oracle, train_oracle
 from lib.data.seduce_data_loader import generate_real_consumption_data
 
-EPOCH_COUNT = 10000
+EPOCH_COUNT = 3000
 BATCH_SIZE = 1000
 
 
@@ -170,17 +170,20 @@ if __name__ == "__main__":
     fig = plt.figure()
     ax = plt.axes()
 
-    server_id = 32
+    server_id = 47
 
     x_data = [d["x"] for d in sorted_plot_data]
     y1_data = [d["y_actual"][server_id] * (best_data["max_temperature"] - best_data["min_temperature"]) + best_data["min_temperature"] for d in sorted_plot_data]
     y2_data = [d["y_pred"][server_id] * (best_data["max_temperature"] - best_data["min_temperature"])+ best_data["min_temperature"] for d in sorted_plot_data]
     x_data = range(0, len(y1_data))
 
-    ax.plot(x_data, y1_data, color='blue', label='actual max temp.')
-    ax.plot(x_data, y2_data, color='red', label='predicted max temp.', alpha=0.5)
+    ax.plot(x_data, y1_data, color='blue', label='actual temp.')
+    ax.plot(x_data, y2_data, color='red', label='predicted temp.', alpha=0.5)
 
     plt.legend()
+
+    plt.xlabel('Time (hour)')
+    plt.ylabel('Back temperature of ecotype-%s (deg. C)' % server_id)
 
     plt.show()
 

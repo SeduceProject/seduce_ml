@@ -8,25 +8,36 @@ if __name__ == "__main__":
 
     layers = [
         {
-            "name": "input layer",
+            "name": "input layer\n(48 neurons)",
             "nodes_count": 4
         },
         {
-            "name": "hidden layer 1",
-            "nodes_count": 6
+            "name": "hidden layer 1\n(256 neurons)",
+            "nodes_count": 5
         },
         {
-            "name": "hidden layer 2",
-            "nodes_count": 6
+            "name": "hidden layer 2\n(256 neurons)",
+            "nodes_count": 5
         },
         {
-            "name": "output layer",
+            "name": "hidden layer 3\n(256 neurons)",
+            "nodes_count": 5
+        },
+        {
+            "name": "output layer\n(48 neurons)",
             "nodes_count": 4
         }
     ]
 
+    i = 1
     for layer in layers:
-        layer["nodes"] = ["%s_%s" % (layer.get("name").replace(" ", "_"), i) for i in range(1, layer.get("nodes_count")+1)]
+        if i == 1:
+            layer["nodes"] = ["x%s" % (j) for j in range(1, layer.get("nodes_count")+1)]
+        elif i == len(layers):
+            layer["nodes"] = ["O%s" % (j) for j in range(1, layer.get("nodes_count")+1)]
+        else:
+            layer["nodes"] = ["a%s%s" % (j, i) for j in range(1, layer.get("nodes_count")+1)]
+        i += 1
 
     output_file_path = "neural_net.dot"
 

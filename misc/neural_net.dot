@@ -7,261 +7,185 @@ digraph G {
     node [label=""];
 
     
-    subgraph input_layer {
+    subgraph cluster_0 {
 		color=white;
-                node [style=solid,color=black, shape=circle];
-		input_layer_1 input_layer_2 input_layer_3 input_layer_4;
-		label = "input layer";
+        node [style=solid,color=red, shape=circle];
+		x1 x2 x3 x4;
+		label = "input layer
+(48 neurons)";
 	}
     
-    subgraph hidden_layer_1 {
+    subgraph cluster_1 {
 		color=white;
-                node [style=solid,color=black, shape=circle];
-		hidden_layer_1_1 hidden_layer_1_2 hidden_layer_1_3 hidden_layer_1_4 hidden_layer_1_5 hidden_layer_1_6;
-		label = "hidden layer 1";
+        node [style=solid,color=blue, shape=circle];
+		a12 a22 a32 a42 a52;
+		label = "hidden layer 1
+(256 neurons)";
 	}
     
-    subgraph hidden_layer_2 {
+    subgraph cluster_2 {
 		color=white;
-                node [style=solid,color=black, shape=circle];
-		hidden_layer_2_1 hidden_layer_2_2 hidden_layer_2_3 hidden_layer_2_4 hidden_layer_2_5 hidden_layer_2_6;
-		label = "hidden layer 2";
+        node [style=solid,color=blue, shape=circle];
+		a13 a23 a33 a43 a53;
+		label = "hidden layer 2
+(256 neurons)";
 	}
     
-    subgraph output_layer {
+    subgraph cluster_3 {
 		color=white;
-                node [style=solid,color=black, shape=circle];
-		output_layer_1 output_layer_2 output_layer_3 output_layer_4;
-		label = "output layer";
+        node [style=solid,color=blue, shape=circle];
+		a14 a24 a34 a44 a54;
+		label = "hidden layer 3
+(256 neurons)";
 	}
     
-
+    subgraph cluster_4 {
+		color=white;
+        node [style=solid,color=red, shape=circle];
+		O1 O2 O3 O4;
+		label = "output layer
+(48 neurons)";
+	}
+    
     
 
-        
+            
+                x1 -> a12;
+                x1 -> a22;
+                x1 -> a32;
+                x1 -> a42;
+                x1 -> a52;
+                
+            
+                x2 -> a12;
+                x2 -> a22;
+                x2 -> a32;
+                x2 -> a42;
+                x2 -> a52;
+                
+            
+                x3 -> a12;
+                x3 -> a22;
+                x3 -> a32;
+                x3 -> a42;
+                x3 -> a52;
+                
+            
+                x4 -> a12;
+                x4 -> a22;
+                x4 -> a32;
+                x4 -> a42;
+                x4 -> a52;
+                
+            
     
 
-        
             
-
-            
-                
-                input_layer_1 -> hidden_layer_1_1;
-                
-                input_layer_1 -> hidden_layer_1_2;
-                
-                input_layer_1 -> hidden_layer_1_3;
-                
-                input_layer_1 -> hidden_layer_1_4;
-                
-                input_layer_1 -> hidden_layer_1_5;
-                
-                input_layer_1 -> hidden_layer_1_6;
+                a12 -> a13;
+                a12 -> a23;
+                a12 -> a33;
+                a12 -> a43;
+                a12 -> a53;
                 
             
-                
-                input_layer_2 -> hidden_layer_1_1;
-                
-                input_layer_2 -> hidden_layer_1_2;
-                
-                input_layer_2 -> hidden_layer_1_3;
-                
-                input_layer_2 -> hidden_layer_1_4;
-                
-                input_layer_2 -> hidden_layer_1_5;
-                
-                input_layer_2 -> hidden_layer_1_6;
+                a22 -> a13;
+                a22 -> a23;
+                a22 -> a33;
+                a22 -> a43;
+                a22 -> a53;
                 
             
-                
-                input_layer_3 -> hidden_layer_1_1;
-                
-                input_layer_3 -> hidden_layer_1_2;
-                
-                input_layer_3 -> hidden_layer_1_3;
-                
-                input_layer_3 -> hidden_layer_1_4;
-                
-                input_layer_3 -> hidden_layer_1_5;
-                
-                input_layer_3 -> hidden_layer_1_6;
+                a32 -> a13;
+                a32 -> a23;
+                a32 -> a33;
+                a32 -> a43;
+                a32 -> a53;
                 
             
-                
-                input_layer_4 -> hidden_layer_1_1;
-                
-                input_layer_4 -> hidden_layer_1_2;
-                
-                input_layer_4 -> hidden_layer_1_3;
-                
-                input_layer_4 -> hidden_layer_1_4;
-                
-                input_layer_4 -> hidden_layer_1_5;
-                
-                input_layer_4 -> hidden_layer_1_6;
+                a42 -> a13;
+                a42 -> a23;
+                a42 -> a33;
+                a42 -> a43;
+                a42 -> a53;
                 
             
-
-        
+                a52 -> a13;
+                a52 -> a23;
+                a52 -> a33;
+                a52 -> a43;
+                a52 -> a53;
+                
+            
     
 
-        
             
-
-            
-                
-                hidden_layer_1_1 -> hidden_layer_2_1;
-                
-                hidden_layer_1_1 -> hidden_layer_2_2;
-                
-                hidden_layer_1_1 -> hidden_layer_2_3;
-                
-                hidden_layer_1_1 -> hidden_layer_2_4;
-                
-                hidden_layer_1_1 -> hidden_layer_2_5;
-                
-                hidden_layer_1_1 -> hidden_layer_2_6;
+                a13 -> a14;
+                a13 -> a24;
+                a13 -> a34;
+                a13 -> a44;
+                a13 -> a54;
                 
             
-                
-                hidden_layer_1_2 -> hidden_layer_2_1;
-                
-                hidden_layer_1_2 -> hidden_layer_2_2;
-                
-                hidden_layer_1_2 -> hidden_layer_2_3;
-                
-                hidden_layer_1_2 -> hidden_layer_2_4;
-                
-                hidden_layer_1_2 -> hidden_layer_2_5;
-                
-                hidden_layer_1_2 -> hidden_layer_2_6;
+                a23 -> a14;
+                a23 -> a24;
+                a23 -> a34;
+                a23 -> a44;
+                a23 -> a54;
                 
             
-                
-                hidden_layer_1_3 -> hidden_layer_2_1;
-                
-                hidden_layer_1_3 -> hidden_layer_2_2;
-                
-                hidden_layer_1_3 -> hidden_layer_2_3;
-                
-                hidden_layer_1_3 -> hidden_layer_2_4;
-                
-                hidden_layer_1_3 -> hidden_layer_2_5;
-                
-                hidden_layer_1_3 -> hidden_layer_2_6;
+                a33 -> a14;
+                a33 -> a24;
+                a33 -> a34;
+                a33 -> a44;
+                a33 -> a54;
                 
             
-                
-                hidden_layer_1_4 -> hidden_layer_2_1;
-                
-                hidden_layer_1_4 -> hidden_layer_2_2;
-                
-                hidden_layer_1_4 -> hidden_layer_2_3;
-                
-                hidden_layer_1_4 -> hidden_layer_2_4;
-                
-                hidden_layer_1_4 -> hidden_layer_2_5;
-                
-                hidden_layer_1_4 -> hidden_layer_2_6;
+                a43 -> a14;
+                a43 -> a24;
+                a43 -> a34;
+                a43 -> a44;
+                a43 -> a54;
                 
             
-                
-                hidden_layer_1_5 -> hidden_layer_2_1;
-                
-                hidden_layer_1_5 -> hidden_layer_2_2;
-                
-                hidden_layer_1_5 -> hidden_layer_2_3;
-                
-                hidden_layer_1_5 -> hidden_layer_2_4;
-                
-                hidden_layer_1_5 -> hidden_layer_2_5;
-                
-                hidden_layer_1_5 -> hidden_layer_2_6;
+                a53 -> a14;
+                a53 -> a24;
+                a53 -> a34;
+                a53 -> a44;
+                a53 -> a54;
                 
             
-                
-                hidden_layer_1_6 -> hidden_layer_2_1;
-                
-                hidden_layer_1_6 -> hidden_layer_2_2;
-                
-                hidden_layer_1_6 -> hidden_layer_2_3;
-                
-                hidden_layer_1_6 -> hidden_layer_2_4;
-                
-                hidden_layer_1_6 -> hidden_layer_2_5;
-                
-                hidden_layer_1_6 -> hidden_layer_2_6;
-                
-            
-
-        
     
 
-        
             
-
-            
-                
-                hidden_layer_2_1 -> output_layer_1;
-                
-                hidden_layer_2_1 -> output_layer_2;
-                
-                hidden_layer_2_1 -> output_layer_3;
-                
-                hidden_layer_2_1 -> output_layer_4;
+                a14 -> O1;
+                a14 -> O2;
+                a14 -> O3;
+                a14 -> O4;
                 
             
-                
-                hidden_layer_2_2 -> output_layer_1;
-                
-                hidden_layer_2_2 -> output_layer_2;
-                
-                hidden_layer_2_2 -> output_layer_3;
-                
-                hidden_layer_2_2 -> output_layer_4;
+                a24 -> O1;
+                a24 -> O2;
+                a24 -> O3;
+                a24 -> O4;
                 
             
-                
-                hidden_layer_2_3 -> output_layer_1;
-                
-                hidden_layer_2_3 -> output_layer_2;
-                
-                hidden_layer_2_3 -> output_layer_3;
-                
-                hidden_layer_2_3 -> output_layer_4;
+                a34 -> O1;
+                a34 -> O2;
+                a34 -> O3;
+                a34 -> O4;
                 
             
-                
-                hidden_layer_2_4 -> output_layer_1;
-                
-                hidden_layer_2_4 -> output_layer_2;
-                
-                hidden_layer_2_4 -> output_layer_3;
-                
-                hidden_layer_2_4 -> output_layer_4;
+                a44 -> O1;
+                a44 -> O2;
+                a44 -> O3;
+                a44 -> O4;
                 
             
-                
-                hidden_layer_2_5 -> output_layer_1;
-                
-                hidden_layer_2_5 -> output_layer_2;
-                
-                hidden_layer_2_5 -> output_layer_3;
-                
-                hidden_layer_2_5 -> output_layer_4;
+                a54 -> O1;
+                a54 -> O2;
+                a54 -> O3;
+                a54 -> O4;
                 
             
-                
-                hidden_layer_2_6 -> output_layer_1;
-                
-                hidden_layer_2_6 -> output_layer_2;
-                
-                hidden_layer_2_6 -> output_layer_3;
-                
-                hidden_layer_2_6 -> output_layer_4;
-                
-            
-
-        
     
 }
