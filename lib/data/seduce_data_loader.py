@@ -74,7 +74,7 @@ def average_temperature_aggregated_by_minute(start_epoch, end_epoch, side="back"
     return sensor_temperatures
 
 
-def generate_real_consumption_data(start_date=None, end_date=None, show_progress=True):
+def generate_real_consumption_data(start_date=None, end_date=None, show_progress=True, data_file_path="data.json", training_data=None):
 
     if start_date is None:
         # start_date = "2019-05-24T08:00:00.000Z"
@@ -86,6 +86,7 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
 
     # Group node data every 120 minutes
     group_by = 60
+    # group_by = 35
     # group_by = 2 * 60
 
     seduce_infrastructure_tree = requests.get("https://api.seduce.fr/infrastructure/description/tree").json()
@@ -100,7 +101,6 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
     # nodes_names = servers_names[:1] + ["back_temperature"]
     # nodes_names = servers_names
 
-    data_file_path = "data.json"
     reload_data = False
     # reload_data = True
     if not os.path.exists(data_file_path):
@@ -230,13 +230,24 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
             if data["max_temperature"] is None or data["max_temperature"] < server_max_temperature:
                 data["max_temperature"] = server_max_temperature
 
+        min_cons = data["min_consumption"]
+        max_cons = data["max_consumption"]
+        min_temp = data["min_temperature"]
+        max_temp = data["max_temperature"]
+
+        if training_data is not None:
+            min_cons = training_data["min_consumption"]
+            max_cons = training_data["max_consumption"]
+            min_temp = training_data["min_temperature"]
+            max_temp = training_data["max_temperature"]
+
         # Normalize data
         for server_name in servers_names:
             data_server = data["consumptions"][server_name]
 
-            data_server["means"] = [(1.0 * x - data["min_consumption"]) / (data["max_consumption"] - data["min_consumption"])
+            data_server["means"] = [(1.0 * x - min_cons) / (max_cons - min_cons)
                                     for x in data_server["means"]]
-            data_server["temperatures"] = [(1.0 * x - data["min_temperature"]) / (data["max_temperature"] - data["min_temperature"])
+            data_server["temperatures"] = [(1.0 * x - min_temp) / (max_temp - min_temp)
                                            for x in data_server["temperatures"]]
 
         data["room_temperature"] = [tuple_2[1]
@@ -267,10 +278,9 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
         v.take(servers_names.size()).map(lambda x: x.map(lambda z: z).to_list()).to_list()))
 
     # Compute values that will be predicted
-
     def select_tuple_n(tuple_n):
         return list(tuple_n)
-        # return [tuple_n[35]]
+        # return [tuple_n[23]]
         # return tuple_n[0]
         # return max(tuple_n)
         # return 30000
@@ -284,7 +294,12 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
 
     y = np.array(raw_values_that_will_be_predicted)
 
-    z = np.array(seq(temperatures).map(lambda x: x).to_list()).reshape(len(x), 1)
     timestamps_labels = timestamps_with_all_data
+
+    # # Add external temperature to the the 'x' array
+    # min_temp = data["min_temperature"]
+    # max_temp = data["max_temperature"]
+    # z = np.array(seq(temperatures).map(lambda x: (1.0 * x - min_temp) / (max_temp - min_temp) if x is not None else 0).to_list()).reshape(len(x), 1)
+    # x = np.append(x, z, axis=1)
 
     return x, y, timestamps_labels, data

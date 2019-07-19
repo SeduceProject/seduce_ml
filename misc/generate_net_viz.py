@@ -12,15 +12,15 @@ if __name__ == "__main__":
             "nodes_count": 4
         },
         {
-            "name": "hidden layer 1\n(256 neurons)",
+            "name": "hidden layer 1\n(52 neurons)",
             "nodes_count": 5
         },
         {
-            "name": "hidden layer 2\n(256 neurons)",
+            "name": "hidden layer 2\n(52 neurons)",
             "nodes_count": 5
         },
         {
-            "name": "hidden layer 3\n(256 neurons)",
+            "name": "hidden layer 3\n(52 neurons)",
             "nodes_count": 5
         },
         {

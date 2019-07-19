@@ -7,9 +7,13 @@ from numpy.linalg import norm
 from keras.models import load_model
 from lib.deeplearning.oracle import build_oracle, train_oracle
 from lib.data.seduce_data_loader import generate_real_consumption_data
+import random
 
 EPOCH_COUNT = 3000
 BATCH_SIZE = 1000
+
+start_date = "2019-06-01T06:00:00.000Z"
+end_date = "2019-07-10T00:00:00.000Z"
 
 
 def sort_tasks_scheduler(loads):
@@ -59,11 +63,17 @@ if __name__ == "__main__":
 
             ###################
             # # USE REAL DATA
-            x, y, tss, data = generate_real_consumption_data()
-            train_proportion = 0.5
+            x, y, tss, data = generate_real_consumption_data(start_date, end_date)
+
+            zip_x_y = list(zip(x, y))[0:int(len(y) * 1.0)]
+            random.shuffle(zip_x_y)
+
+            random_x = np.array([t2[0] for t2 in zip_x_y])
+            random_y = np.array([t2[1] for t2 in zip_x_y])
+            train_proportion = 0.99
             train_probe_size = int(len(x) * train_proportion)
-            x_train, y_train = x[train_probe_size:], y[train_probe_size:]
-            x_test, y_test = x[:train_probe_size], y[:train_probe_size]
+            x_train, y_train = random_x[len(x) - train_probe_size:], random_y[len(y) - train_probe_size:]
+            x_test, y_test = random_x[:train_probe_size], random_y[:train_probe_size]
 
             train_oracle(oracle,
                          {
@@ -102,13 +112,7 @@ if __name__ == "__main__":
                 result = oracle.predict(test_input)[0]
 
                 difference = norm(expected_value - result)
-
-                # if result > 0.30:
                 differences += [difference]
-
-                # if difference >= 1.0:
-                #     print("%s: expected:%s --> predicted:%s (%s)" % (np.mean(test_input), expected_value, result, tss[idx]))
-                #     prediction_failed += 1
 
                 plot_data += [{
                     "x": idx,
@@ -162,15 +166,15 @@ if __name__ == "__main__":
     # Draw the comparison between actual data and prediction:
     # sorted_plot_data = sorted(best_plot_data, key=lambda d: d["y_actual"])
 
-    start_step = int(0.66 * len(best_plot_data))
-    end_step = int(0.75 * len(best_plot_data))
+    start_step = int(0.90 * len(best_plot_data))
+    end_step = int(1.0 * len(best_plot_data))
 
     sorted_plot_data = sorted(best_plot_data, key=lambda d: d["x"])[start_step:end_step]
 
     fig = plt.figure()
     ax = plt.axes()
 
-    server_id = 47
+    server_id = 23
 
     x_data = [d["x"] for d in sorted_plot_data]
     y1_data = [d["y_actual"][server_id] * (best_data["max_temperature"] - best_data["min_temperature"]) + best_data["min_temperature"] for d in sorted_plot_data]

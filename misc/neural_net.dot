@@ -20,7 +20,7 @@ digraph G {
         node [style=solid,color=blue, shape=circle];
 		a12 a22 a32 a42 a52;
 		label = "hidden layer 1
-(256 neurons)";
+(52 neurons)";
 	}
     
     subgraph cluster_2 {
@@ -28,7 +28,7 @@ digraph G {
         node [style=solid,color=blue, shape=circle];
 		a13 a23 a33 a43 a53;
 		label = "hidden layer 2
-(256 neurons)";
+(52 neurons)";
 	}
     
     subgraph cluster_3 {
@@ -36,7 +36,7 @@ digraph G {
         node [style=solid,color=blue, shape=circle];
 		a14 a24 a34 a44 a54;
 		label = "hidden layer 3
-(256 neurons)";
+(52 neurons)";
 	}
     
     subgraph cluster_4 {

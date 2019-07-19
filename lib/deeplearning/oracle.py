@@ -1,17 +1,18 @@
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Dropout, Flatten, Conv1D, MaxPooling1D, GlobalAveragePooling1D, Reshape
+from keras.models import Sequential, Model
+from keras.layers import Input, Dense, Activation, Conv2D, MaxPooling2D, Dropout, Flatten, Conv1D, MaxPooling1D, GlobalAveragePooling1D, Reshape
+import keras.backend as K
 
 
 def build_oracle(nb_servers):
     model = Sequential([
-        Dense(256, input_shape=(nb_servers,)),
-        Activation('relu'),
-        Dense(256),
-        Activation('relu'),
-        Dense(256),
-        Activation('relu'),
-        Dense(output_dim=48, activation='linear')
-        # Activation('softmax'),
+        Dense(53, input_shape=(48,)),
+        Activation('tanh'),
+        # Dense(53),
+        # Activation('tanh'),
+        # Dense(53),
+        # Activation('tanh'),
+        Dense(output_dim=48),
+        Activation('linear'),
     ])
 
     model.compile(optimizer='adam',
