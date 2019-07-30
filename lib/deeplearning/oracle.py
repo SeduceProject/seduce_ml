@@ -1,18 +1,27 @@
-from keras.models import Sequential, Model
-from keras.layers import Input, Dense, Activation, Conv2D, MaxPooling2D, Dropout, Flatten, Conv1D, MaxPooling1D, GlobalAveragePooling1D, Reshape
-import keras.backend as K
+from keras.models import Sequential
+from keras.layers import Dense, Activation
 
 
-def build_oracle(nb_servers):
-    model = Sequential([
-        Dense(53, input_shape=(48,)),
-        Activation('tanh'),
-        # Dense(53),
-        # Activation('tanh'),
-        # Dense(53),
-        # Activation('tanh'),
-        Dense(output_dim=48),
-        Activation('linear'),
+def flatten(ll):
+    return [lj for li in ll for lj in li]
+
+
+def build_oracle(nb_inputs, nb_outputs, hidden_layers_count=1, neurons_per_hidden_layer=53, activation_function="tanh"):
+    model = Sequential(
+        [
+            Dense(neurons_per_hidden_layer, input_shape=(nb_inputs,)),
+            Activation(activation_function),
+        ]
+        +
+        flatten([
+            [Dense(neurons_per_hidden_layer),
+            Activation(activation_function)]
+            for i in range(1, hidden_layers_count - 1)
+        ])
+        +
+        [
+            Dense(output_dim=nb_outputs),
+            # Activation('linear'),
     ])
 
     model.compile(optimizer='adam',
@@ -28,8 +37,4 @@ def train_oracle(oracle, data, epochs, batch_size):
                epochs=epochs,
                batch_size=batch_size)
 
-    pass
-
-
-def run_oracle(oracle, input):
     pass

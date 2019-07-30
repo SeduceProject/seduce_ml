@@ -5,101 +5,39 @@ import os
 import json
 import calendar
 import time
-import functools
-import math
-
-NORMALIZATION_SERVER = 200
-# NORMALIZATION_COOLING = 20000
+from sklearn.preprocessing import MinMaxScaler
 
 
-def simulate_consumption_function(data):
-
-    weight = [
-        0.82, 0.85, 0.87, 0.90, 0.97, 0.99, 0.93, 0.82, 0.72, 0.70, 0.85, 0.98,
-        0.82, 0.85, 0.87, 0.90, 0.97, 0.99, 0.93, 0.82, 0.72, 0.70, 0.78, 0.85,
-        0.95, 0.94, 0.87, 0.90, 0.97, 0.99, 0.93, 0.82, 0.72, 0.70, 0.70, 0.68,
-        0.97, 0.99, 0.87, 0.90, 0.97, 0.99, 0.93, 0.82, 0.72, 0.70, 0.70, 0.68,
-    ]
-
-    if len(data) < 10:
-        raise Exception("Error: len(data) < 0")
-
-    consumption = sum([x * y for (x, y) in zip(weight, data)])
-    normalized_consumption = consumption / len(weight)
-
-    # return math.sin(normalized_consumption)
-    return normalized_consumption
+ADD_EXTERNAL_TEMPERATURE = True
+ADD_RETURN_AIR_TEMPERATURE = True
 
 
-def generate_fake_consumption_data(nb_servers, nb_data):
-    x = np.random.random((nb_data, nb_servers))
-    y = np.apply_along_axis(simulate_consumption_function, 1, x)
-    return x, y
+ADDITIONAL_VARIABLES = [
+    {
+        "name": "room_temperature",
+        "sensor": "28b8fb2909000003"
+    },
+    {
+        "name": "return_air_temperature",
+        "sensor": "inrow_unit_return_air_temp"
+    },
+]
 
 
-def cluster_average_temperature(start_epoch, end_epoch, side="back"):
-
-    resp = requests.get("https://api.seduce.fr/infrastructure/description/tree")
-    resp_json = resp.json()
-    servers_names = list(resp_json.get("power").keys())
-
-    back_temperature_sensors = [v.get(side) for v in resp_json.get("temperature").values() if v.get(side) is not None]
-
-    server_sensors_list = []
-
-    for back_temperature_sensor in back_temperature_sensors:
-        sensors = [(s.get("tags")[0], s.get("serie")) for s in back_temperature_sensor.values() if s.get("tags")]
-
-        server_sensors_list += sensors
-
-    sorted_server_sensors_list = sorted(server_sensors_list, key=lambda x: int(x[0].split("-")[-1]))
-    sorted_sensors = [x[1] for x in sorted_server_sensors_list]
-
-    temperatures = []
-
-    for sensor in sorted_sensors:
-        temperature_url = "https://api.seduce.fr/sensors/%s/measurements?start_date=%s&end_date=%s" % (sensor, int(start_epoch), int(end_epoch))
-        sensor_temperatures = requests.get(temperature_url).json().get("values")
-        temperatures += [np.mean(sensor_temperatures)]
-        print(".", end="")
-    print("")
-
-    return temperatures
-
-
-def average_temperature_aggregated_by_minute(start_epoch, end_epoch, side="back"):
-    temperature_url = "https://dashboard.seduce.fr/rack/%s/temperatures/aggregated?start_date=%ss&end_date=%ss" % (side, int(start_epoch), int(end_epoch))
-    sensor_temperatures = requests.get(temperature_url).json()
-
-    return sensor_temperatures
-
-
-def generate_real_consumption_data(start_date=None, end_date=None, show_progress=True, data_file_path="data.json", training_data=None):
-
-    if start_date is None:
-        # start_date = "2019-05-24T08:00:00.000Z"
-        start_date = "2019-06-01T06:00:00.000Z"
-        # start_date = "2019-07-07T06:00:00.000Z"
-    if end_date is None:
-        # end_date = "2019-06-11T08:00:00.000Z"
-        end_date = "2019-07-08T09:09:35.000Z"
-
-    # Group node data every 120 minutes
-    group_by = 60
-    # group_by = 35
-    # group_by = 2 * 60
+def generate_real_consumption_data(start_date=None,
+                                   end_date=None,
+                                   show_progress=True,
+                                   data_file_path="data.json",
+                                   group_by=60,
+                                   scaler=None):
 
     seduce_infrastructure_tree = requests.get("https://api.seduce.fr/infrastructure/description/tree").json()
 
     power_infrastructure_tree = requests.get("https://api.seduce.fr/power_infrastructure/description/tree").json()
     servers_names_raw = power_infrastructure_tree['children'][0]['children'][1]['children'][1]['node'].get("children")
-    servers_names_raw = sorted(servers_names_raw, key=lambda x: int(x.split("-")[1]))
+    # servers_names_raw = [f"ecotype-{i}" for i in range(37, 49)]
 
     servers_names = seq(servers_names_raw)
-    # servers_names = servers_names.take(2)
-
-    # nodes_names = servers_names[:1] + ["back_temperature"]
-    # nodes_names = servers_names
 
     reload_data = False
     # reload_data = True
@@ -119,6 +57,7 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
             "end_date": end_date,
             "group_by": group_by,
             "room_temperature": [],
+            "return_air_temperature": [],
             "min_consumption": None,
             "max_consumption": None,
             "min_temperature": None,
@@ -173,14 +112,13 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
                                                             if k in node_pdus
                                                             ])
                                        ],
+                # "temperatures": dump_data.get("sensors_data")[back_temperature_sensor]["maxs"],
                 "temperatures": dump_data.get("sensors_data")[back_temperature_sensor]["means"],
                 "timestamps": dump_data.get("sensors_data")[back_temperature_sensor]["timestamps"],
             }
 
             if show_progress:
                 print('.', end='')
-
-        data["room_temperature"] = data.get("sensors_data")["28b8fb2909000003"]["means"]
 
         # Detect incomplete data
         filter_timestamps = []
@@ -194,6 +132,7 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
                                         ]
             if len(filtered_ziped_big_array) > 0:
                 filter_timestamps += [x[0] for x in filtered_ziped_big_array]
+        data["filter_timestamps"] = filter_timestamps
 
         # Filter incomplete data
         for server_name in servers_names:
@@ -209,56 +148,32 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
             data_server["means"] = [tuple_n[1] for tuple_n in filtered_ziped_big_array]
             data_server["temperatures"] = [tuple_n[2] for tuple_n in filtered_ziped_big_array]
 
-        # Find normalizaion parameters
-        for server_name in servers_names:
-            data_server = data["consumptions"][server_name]
-
-            server_min_consumption = min(data_server["means"])
-            server_max_consumption = max(data_server["means"])
-            server_min_temperature = min(data_server["temperatures"])
-            server_max_temperature = max(data_server["temperatures"])
-
-            if data["min_consumption"] is None or data["min_consumption"] > server_min_consumption:
-                data["min_consumption"] = server_min_consumption
-
-            if data["max_consumption"] is None or data["max_consumption"] < server_max_consumption:
-                data["max_consumption"] = server_max_consumption
-
-            if data["min_temperature"] is None or data["min_temperature"] > server_min_temperature:
-                data["min_temperature"] = server_min_temperature
-
-            if data["max_temperature"] is None or data["max_temperature"] < server_max_temperature:
-                data["max_temperature"] = server_max_temperature
-
-        min_cons = data["min_consumption"]
-        max_cons = data["max_consumption"]
-        min_temp = data["min_temperature"]
-        max_temp = data["max_temperature"]
-
-        if training_data is not None:
-            min_cons = training_data["min_consumption"]
-            max_cons = training_data["max_consumption"]
-            min_temp = training_data["min_temperature"]
-            max_temp = training_data["max_temperature"]
-
         # Normalize data
         for server_name in servers_names:
             data_server = data["consumptions"][server_name]
 
-            data_server["means"] = [(1.0 * x - min_cons) / (max_cons - min_cons)
+            data_server["means"] = [x
                                     for x in data_server["means"]]
-            data_server["temperatures"] = [(1.0 * x - min_temp) / (max_temp - min_temp)
+            data_server["temperatures"] = [x
                                            for x in data_server["temperatures"]]
 
-        data["room_temperature"] = [tuple_2[1]
-                                    for tuple_2 in zip(data["timestamps"], data["room_temperature"])
-                                    if tuple_2[0] not in filter_timestamps]
+        for key in ["room_temperature", "return_air_temperature"]:
+            data[key] = [tuple_2[1]
+                         for tuple_2 in zip(data["timestamps"], data[key])
+                         if tuple_2[0] not in filter_timestamps]
 
         with open(data_file_path, "w+") as data_file:
             json.dump(data, data_file)
     else:
         with open(data_file_path, "r") as data_file:
             data = json.load(data_file)
+
+    for additional_var in ADDITIONAL_VARIABLES:
+        additional_var_dict = data.get("sensors_data")[additional_var.get("sensor")]
+        data[additional_var.get("name")] = [b
+                                            for (a, b) in zip(additional_var_dict["timestamps"],
+                                                              additional_var_dict["means"])
+                                            if a not in data.get("filter_timestamps")]
 
     timestamps_with_all_data = data["timestamps"]
 
@@ -272,34 +187,37 @@ def generate_real_consumption_data(start_date=None, end_date=None, show_progress
                                .map(lambda z: z[1])
                                .map(lambda x: x if x is not None else 0))
 
-    temperatures = data["room_temperature"]
-
     x = np.transpose(np.array(
         v.take(servers_names.size()).map(lambda x: x.map(lambda z: z).to_list()).to_list()))
 
-    # Compute values that will be predicted
-    def select_tuple_n(tuple_n):
-        return list(tuple_n)
-        # return [tuple_n[23]]
-        # return tuple_n[0]
-        # return max(tuple_n)
-        # return 30000
-        # return sum(tuple_n)
-
-    raw_values_that_will_be_predicted = [select_tuple_n(tuple_n)
-                                         for tuple_n in zip(*[server_data["temperatures"]
-                                                              for server_name, server_data in data.get("consumptions").items()]
+    raw_values_that_will_be_predicted = [tuple_n
+                                         for tuple_n in zip(*[data.get("consumptions")[server_name]["temperatures"]
+                                                              for server_name in servers_names
+                                                              ]
                                                             )
                                          ]
-
     y = np.array(raw_values_that_will_be_predicted)
+
+    for additional_var in ADDITIONAL_VARIABLES:
+        temperatures = data[additional_var.get("name")]
+        z = np.array(seq(temperatures).map(lambda x: x if x is not None else 0).to_list()).reshape(len(x), 1)
+        # Add external temperature to the the 'x' array
+        x = np.append(x, z, axis=1)
 
     timestamps_labels = timestamps_with_all_data
 
-    # # Add external temperature to the the 'x' array
-    # min_temp = data["min_temperature"]
-    # max_temp = data["max_temperature"]
-    # z = np.array(seq(temperatures).map(lambda x: (1.0 * x - min_temp) / (max_temp - min_temp) if x is not None else 0).to_list()).reshape(len(x), 1)
-    # x = np.append(x, z, axis=1)
+    # Scale values
+    if scaler is None:
+        scaler = MinMaxScaler(feature_range=(0, 1))
 
-    return x, y, timestamps_labels, data
+    input_columns_count = x.shape[1]
+    output_columns_count = y.shape[1]
+
+    all_non_scaled_values = np.copy(x)
+    all_non_scaled_values = np.append(all_non_scaled_values, y, axis=1)
+    scaled_values = scaler.fit_transform(all_non_scaled_values)
+
+    scaled_x, scaled_y = scaled_values[:, :input_columns_count], scaled_values[:, -output_columns_count:]
+
+    shape = (input_columns_count, output_columns_count)
+    return scaled_x, scaled_y, timestamps_labels, data, scaler, shape

@@ -1,6 +1,7 @@
 project
 data.json
 data/*.h5
+tmp
 
 ## INTELLIJ / PyCharm GITIGNORE
 
