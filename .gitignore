@@ -1,7 +1,11 @@
 project
 data.json
+data_validation.json
 data/*.h5
+data/scaler*
 tmp
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints
 
 ## INTELLIJ / PyCharm GITIGNORE
 

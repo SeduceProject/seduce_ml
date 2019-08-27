@@ -9,3 +9,4 @@ python-grid5000
 jinja2
 texttable
 sklearn
+arrow

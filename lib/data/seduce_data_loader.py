@@ -12,14 +12,31 @@ ADD_EXTERNAL_TEMPERATURE = True
 ADD_RETURN_AIR_TEMPERATURE = True
 
 
+def compute_average_consumption(x):
+    return np.mean(x)
+
+
 ADDITIONAL_VARIABLES = [
     {
-        "name": "room_temperature",
-        "sensor": "28b8fb2909000003"
+        "name": "ecotype_40_past_temp",
+        "server_temperature": "ecotype-40",
+        "shift": True
+    },
+    # # # # Consumption
+    {
+        "name": "ecotype_40_past_cons",
+        "server_consumption": "ecotype-40",
+        "shift": True
     },
     {
-        "name": "return_air_temperature",
-        "sensor": "inrow_unit_return_air_temp"
+        "name": "avg_consumption",
+        "consumption_function": compute_average_consumption,
+        "shift": False
+    },
+    {
+        "name": "past_avg_consumption",
+        "consumption_function": compute_average_consumption,
+        "shift": True
     },
 ]
 
@@ -29,15 +46,19 @@ def generate_real_consumption_data(start_date=None,
                                    show_progress=True,
                                    data_file_path="data.json",
                                    group_by=60,
-                                   scaler=None):
+                                   scaler=None,
+                                   use_scaler=True):
 
     seduce_infrastructure_tree = requests.get("https://api.seduce.fr/infrastructure/description/tree").json()
 
-    power_infrastructure_tree = requests.get("https://api.seduce.fr/power_infrastructure/description/tree").json()
-    servers_names_raw = power_infrastructure_tree['children'][0]['children'][1]['children'][1]['node'].get("children")
-    # servers_names_raw = [f"ecotype-{i}" for i in range(37, 49)]
+    servers_names_raw = [f"ecotype-{i}" for i in range(1, 49)]
+    servers_names_raw = sorted(servers_names_raw, key=lambda s: int(s.split("-")[1]))
+
+    selected_servers_names_raw = [f"ecotype-{i}" for i in range(40, 41)]
+    selected_servers_names_raw = sorted(selected_servers_names_raw, key=lambda s: int(s.split("-")[1]))
 
     servers_names = seq(servers_names_raw)
+    selected_servers_names = seq(selected_servers_names_raw)
 
     reload_data = False
     # reload_data = True
@@ -61,7 +82,9 @@ def generate_real_consumption_data(start_date=None,
             "min_consumption": None,
             "max_consumption": None,
             "min_temperature": None,
-            "max_temperature": None
+            "max_temperature": None,
+            "server_names": servers_names_raw,
+            "selected_servers": selected_servers_names_raw
         }
 
         epoch_times = [calendar.timegm(time.strptime(t, '%Y-%m-%dT%H:%M:%S.000Z')) for t in [start_date, end_date]]
@@ -80,7 +103,7 @@ def generate_real_consumption_data(start_date=None,
                              ]
 
         if len(incomplete_series) > 0:
-            raise("Some series are incomplete!")
+            raise Exception("Some series are incomplete!")
 
         data["timestamps"] = list(set([ts
                                        for v in dump_data["sensors_data"].values()
@@ -132,7 +155,7 @@ def generate_real_consumption_data(start_date=None,
                                         ]
             if len(filtered_ziped_big_array) > 0:
                 filter_timestamps += [x[0] for x in filtered_ziped_big_array]
-        data["filter_timestamps"] = filter_timestamps
+        data["filter_timestamps"] = list(set(filter_timestamps))
 
         # Filter incomplete data
         for server_name in servers_names:
@@ -169,55 +192,105 @@ def generate_real_consumption_data(start_date=None,
             data = json.load(data_file)
 
     for additional_var in ADDITIONAL_VARIABLES:
-        additional_var_dict = data.get("sensors_data")[additional_var.get("sensor")]
-        data[additional_var.get("name")] = [b
-                                            for (a, b) in zip(additional_var_dict["timestamps"],
-                                                              additional_var_dict["means"])
-                                            if a not in data.get("filter_timestamps")]
+        if "sensor" in additional_var:
+            additional_var_dict = data.get("sensors_data")[additional_var.get("sensor")]
+            variables_values = [b
+                                for (a, b) in zip(additional_var_dict["timestamps"],
+                                                  additional_var_dict["means"])
+                                if a not in data.get("filter_timestamps")]
+        elif "server_consumption" in additional_var:
+            additional_var_dict = data.get("consumptions")[additional_var.get("server_consumption")]
+            variables_values = [b
+                                for (a, b) in zip(additional_var_dict["timestamps"],
+                                                  additional_var_dict["means"])
+                                if a not in data.get("filter_timestamps")]
+        elif "server_temperature" in additional_var:
+            additional_var_dict = data.get("consumptions")[additional_var.get("server_temperature")]
+            variables_values = [b
+                                for (a, b) in zip(additional_var_dict["timestamps"],
+                                                  additional_var_dict["temperatures"])
+                                if a not in data.get("filter_timestamps")]
+        elif "consumption_function" in additional_var:
+            all_data = data.get("consumptions")
+            func = additional_var["consumption_function"]
 
-    timestamps_with_all_data = data["timestamps"]
+            consumptions = {}
+            for server_name in all_data.keys():
+                consumptions[server_name] = [
+                    cons
+                    for (ts, cons) in zip(all_data[server_name]["timestamps"], all_data[server_name]["means"])
+                    if ts not in data["filter_timestamps"]
+                ]
 
-    visualization_data = servers_names \
-        .map(lambda x: data.get("consumptions")[x]) \
-        .map(lambda c: zip(c["timestamps"], c["means"], c["temperatures"])) \
-        .map(lambda z: seq(z)
-             .filter(lambda z: z[0] in timestamps_with_all_data))
+            variables_values = [func(i) for i in zip(*consumptions.values())]
+        else:
+            raise Exception(f"Could not understand how to compute the additional variable {additional_var.get('name', str(additional_var))}")
 
-    v = visualization_data.map(lambda z: seq(z)
-                               .map(lambda z: z[1])
-                               .map(lambda x: x if x is not None else 0))
+        if not additional_var.get("shift", False):
+            data[additional_var.get("name")] = variables_values
+        else:
+            data[additional_var.get("name")] = [variables_values[0]] + variables_values[0:-1]
 
-    x = np.transpose(np.array(
-        v.take(servers_names.size()).map(lambda x: x.map(lambda z: z).to_list()).to_list()))
+    x = None
+    y = None
 
-    raw_values_that_will_be_predicted = [tuple_n
-                                         for tuple_n in zip(*[data.get("consumptions")[server_name]["temperatures"]
-                                                              for server_name in servers_names
-                                                              ]
-                                                            )
-                                         ]
-    y = np.array(raw_values_that_will_be_predicted)
+    timestamps_labels = None
+
+    for server_name in servers_names_raw:
+        if timestamps_labels is not None:
+            if data["consumptions"][server_name]["timestamps"] != timestamps_labels:
+                raise Exception(f"Timestamps of server {server_name} don't match timestamps of other servers")
+        timestamps_labels = data["consumptions"][server_name]["timestamps"]
+
+    for selected_server in selected_servers_names:
+
+        if timestamps_labels is not None:
+            if data["consumptions"][selected_server]["timestamps"] != timestamps_labels:
+                print("plop")
+
+        timestamps_labels = data["consumptions"][selected_server]["timestamps"]
+        consumption_values = data["consumptions"][selected_server]["means"]
+        temperature_values = data["consumptions"][selected_server]["temperatures"]
+
+        z = np.array(seq(consumption_values).map(lambda x: x if x is not None else 0).to_list()).reshape(len(timestamps_labels), 1)
+        # Add values of the additional variable to the 'x' array
+        if x is None:
+            x = z
+        else:
+            x = np.append(x, z, axis=1)
+        z = np.array(seq(temperature_values).map(lambda x: x if x is not None else 0).to_list()).reshape(len(timestamps_labels), 1)
+        # Add values of the additional variable to the 'x' array
+        if y is None:
+            y = z
+        else:
+            y = np.append(y, z, axis=1)
 
     for additional_var in ADDITIONAL_VARIABLES:
+
+        if additional_var.get("exclude_from_training_data", False):
+            continue
+
         temperatures = data[additional_var.get("name")]
         z = np.array(seq(temperatures).map(lambda x: x if x is not None else 0).to_list()).reshape(len(x), 1)
-        # Add external temperature to the the 'x' array
+        # Add values of the additional variable to the 'x' array
         x = np.append(x, z, axis=1)
-
-    timestamps_labels = timestamps_with_all_data
-
-    # Scale values
-    if scaler is None:
-        scaler = MinMaxScaler(feature_range=(0, 1))
 
     input_columns_count = x.shape[1]
     output_columns_count = y.shape[1]
 
-    all_non_scaled_values = np.copy(x)
-    all_non_scaled_values = np.append(all_non_scaled_values, y, axis=1)
-    scaled_values = scaler.fit_transform(all_non_scaled_values)
-
-    scaled_x, scaled_y = scaled_values[:, :input_columns_count], scaled_values[:, -output_columns_count:]
-
     shape = (input_columns_count, output_columns_count)
-    return scaled_x, scaled_y, timestamps_labels, data, scaler, shape
+
+    if use_scaler:
+        # Scale values
+        if scaler is None:
+            scaler = MinMaxScaler(feature_range=(0, 1))
+
+        all_non_scaled_values = np.copy(x)
+        all_non_scaled_values = np.append(all_non_scaled_values, y, axis=1)
+        scaled_values = scaler.fit_transform(all_non_scaled_values)
+
+        scaled_x, scaled_y = scaled_values[:, :input_columns_count], scaled_values[:, -output_columns_count:]
+
+        return scaled_x, scaled_y, timestamps_labels, data, scaler, shape, selected_servers_names_raw
+    else:
+        return x, y, timestamps_labels, data, None, shape, selected_servers_names_raw

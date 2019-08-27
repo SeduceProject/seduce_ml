@@ -3,7 +3,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.linalg import norm
-from lib.deeplearning.oracle import build_oracle, train_oracle
+from lib.learning.oracle import build_oracle, train_oracle
 from lib.data.seduce_data_loader import generate_real_consumption_data
 import random
 import os
@@ -12,19 +12,48 @@ from texttable import Texttable
 from sklearn.externals import joblib
 from validate_seduce_ml import validate_seduce_ml
 import uuid
+from lib.learning.knearest import KNearestOracle
+from sklearn.model_selection import train_test_split
 
 EPOCH_COUNT = 3000
 BATCH_SIZE = 1000
 GROUP_BY = 60
 PERCENTILE = 80
 
-start_date = "2019-06-01T00:00:00.000Z"
-end_date = "2019-07-05T00:00:00.000Z"
 
 NETWORK_PATH = "last"
 
-validation_start_date = "2019-07-05T00:00:00.000Z"
-validation_end_date = "2019-07-12T18:00:00.000Z"
+# # <BEFORE HOLIDAYS>
+# start_date = "2019-06-01T00:00:00.000Z"
+# end_date = "2019-07-05T00:00:00.000Z"
+#
+# validation_start_date = "2019-07-05T00:00:00.000Z"
+# validation_end_date = "2019-07-12T18:00:00.000Z"
+# # </BEFORE HOLIDAYS>
+
+# # <AFTER HOLIDAYS>
+# start_date = "2019-06-01T00:00:00.000Z"
+# end_date = "2019-08-01T00:00:00.000Z"
+#
+# validation_start_date = "2019-08-01T00:00:00.000Z"
+# validation_end_date = "2019-08-19T18:00:00.000Z"
+# # </AFTER HOLIDAYS>
+
+# # <DEBUG AFTER HOLIDAYS>
+# start_date = "2019-06-17T00:00:00.000Z"
+# end_date = "2019-06-20T00:00:00.000Z"
+#
+# validation_start_date = "2019-08-17T00:00:00.000Z"
+# validation_end_date = "2019-08-19T18:00:00.000Z"
+# # # </DEBUG AFTER HOLIDAYS>
+
+# <DEBUG DATE>
+start_date = "2019-07-20T00:00:00.000Z"
+end_date = "2019-08-20T00:00:00.000Z"
+
+validation_start_date = "2019-08-20T01:00:00.000Z"
+validation_end_date = "2019-08-27T22:00:00.000Z"
+# </DEBUG DATE>
 
 tmp_figures_folder = "tmp/%s" % time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time()))
 os.makedirs(tmp_figures_folder)
@@ -32,19 +61,41 @@ os.makedirs(tmp_figures_folder)
 
 COMPARISON_PLOT_DATA = []
 
-EPOCHS = [500, 1000, 2000]
-NB_LAYERS = [1]
-NEURONS_PER_LAYER = [64, 128]
+EPOCHS = [
+    500,
+    # 1000,
+    # 2000,
+    # 5000,
+]
+NB_LAYERS = [
+    1,
+    # 2,
+    # 4,
+]
+NEURONS_PER_LAYER = [
+    32,
+    # 128,
+    # 256,
+]
+
 ACTIVATION_FUNCTIONS = [
-    "tanh",
+    # "tanh", # Should try this later
     "relu",
     # "sigmoid",
-    "linear",
+    # "linear", # Should try this later
     # "softmax",
     # "exponential"
 ]
-NB_RUN = 5
-SERVER_ID = 43
+
+NB_RUN = 1
+
+SERVER_ID = "ecotype-40"
+
+USE_SCALER = True
+# USE_SCALER = False
+
+LEARNING_METHOD = "neural"
+# LEARNING_METHOD = "knearest"
 
 TEST_PARAMS = [
     {
@@ -99,75 +150,106 @@ if __name__ == "__main__":
             plot_data = []
 
             # Train the neural network
-            x, y, tss, data, scaler, shape =\
+            x, y, tss, data, scaler, shape, servers_names_raw =\
                 generate_real_consumption_data(start_date,
                                                end_date,
-                                               group_by=GROUP_BY)
+                                               group_by=GROUP_BY,
+                                               use_scaler=USE_SCALER)
 
             nb_inputs, nb_ouputs = shape
 
-            # Build the neural network
-            oracle = build_oracle(nb_inputs=nb_inputs,
-                                  nb_outputs=nb_ouputs,
-                                  hidden_layers_count=PARAMS.get("nb_layers"),
-                                  neurons_per_hidden_layer=PARAMS.get("neurons_per_layers"),
-                                  activation_function=PARAMS.get("activation_function"))
-
-            zip_x_y = list(zip(x, y))[0:int(len(y) * 1.0)]
-            random.shuffle(zip_x_y)
-
-            random_x = np.array([t2[0] for t2 in zip_x_y])
-            random_y = np.array([t2[1] for t2 in zip_x_y])
+            # # Create a training and an evaluation set
+            # zip_x_y = list(zip(x, y))[0:int(len(y) * 1.0)]
+            # random.shuffle(zip_x_y)
+            #
+            # random_x = np.array([t2[0] for t2 in zip_x_y])
+            # random_y = np.array([t2[1] for t2 in zip_x_y])
             train_proportion = 0.80
-            train_probe_size = int(len(x) * train_proportion)
-            x_train, y_train = random_x[len(x) - train_probe_size:], random_y[len(y) - train_probe_size:]
-            x_test, y_test = random_x[:train_probe_size], random_y[:train_probe_size]
+            # train_probe_size = int(len(x) * train_proportion)
+            # x_train, y_train = random_x[len(x) - train_probe_size:], random_y[len(y) - train_probe_size:]
+            # x_test, y_test = random_x[:train_probe_size], random_y[:train_probe_size]
 
-            train_oracle(oracle,
-                         {
-                             "x": x_train,
-                             "y": y_train
-                         },
-                         PARAMS.get("epoch"),
-                         len(y_train))
+            x_train, x_test, y_train, y_test, tss_train, tss_test = train_test_split(x,
+                                                                y,
+                                                                tss,
+                                                                test_size=1-train_proportion,
+                                                                shuffle=False)
 
-            # Evaluate the neural network
-            score = oracle.evaluate(x_test, y_test, batch_size=BATCH_SIZE)
-            print("score: %s" % (score))
+            # Build the oracle
+            if LEARNING_METHOD == "neural":
+                oracle = build_oracle(nb_inputs=nb_inputs,
+                                      nb_outputs=nb_ouputs,
+                                      hidden_layers_count=PARAMS.get("nb_layers"),
+                                      neurons_per_hidden_layer=PARAMS.get("neurons_per_layers"),
+                                      activation_function=PARAMS.get("activation_function"))
 
-            # Use the neural network
+                train_oracle(oracle,
+                             {
+                                 "x": x_train,
+                                 "y": y_train
+                             },
+                             PARAMS.get("epoch"),
+                             len(y_train))
+
+                # Evaluate the neural network
+                score = oracle.evaluate(x_test, y_test, batch_size=BATCH_SIZE)
+            elif LEARNING_METHOD == "knearest":
+                # Build oracle using the "k-nearest neighbours" technique
+                # oracle = knearest_build_oracle(x_train, y_train)
+                # score = oracle.score(x_test, y_test)
+                oracle = KNearestOracle(x_train, y_train, tss_train)
+            else:
+                raise Exception("Could not find what learning technique should be used :(")
+
+            # print("score: %s" % (score))
+
+            considered_x_set = x_test
+            considered_y_set = y_test
 
             sum_squared_difference = 0
-            for idx in range(0, len(y)):
-                test_input = np.array([x[idx]])
-                expected_value = y[idx]
+            for idx in range(0, len(considered_y_set)):
+                test_input = np.array([considered_x_set[idx]])
+                expected_value = considered_y_set[idx]
 
-                result = oracle.predict(test_input)[0][0]
+                if LEARNING_METHOD == "neural":
+                    result = oracle.predict(test_input)[0][0]
+                else:
+                    result = oracle.predict(test_input)
 
                 difference = norm(expected_value - result)
 
                 sum_squared_difference += difference
-            std = math.sqrt(sum_squared_difference / len(y))
+            std = math.sqrt(sum_squared_difference / len(considered_y_set))
             print("standard deviation: %s" % std)
 
             prediction_failed = 0
             differences = []
             signed_differences = []
-            for idx in range(0, len(y)):
-                test_input = np.array([x[idx]])
-                expected_value = y[idx]
-                result = oracle.predict(test_input)[0]
+
+            for idx in range(0, len(considered_y_set)):
+                test_input = np.array([considered_x_set[idx]])
+                expected_value = considered_y_set[idx]
+
+                if LEARNING_METHOD == "neural":
+                    result = oracle.predict(test_input)[0]
+                else:
+                    # result = compute_knearest(x_train, y_train, tss_train, test_input, expected_value)
+                    result = oracle.predict(test_input)[0]
 
                 difference = norm(expected_value - result)
                 differences += [difference]
 
-                concatenated_input_and_outputs = np.array([np.append(np.copy(test_input), expected_value)])
+                if USE_SCALER:
+                    concatenated_input_and_outputs = np.array([np.append(np.copy(test_input), expected_value)])
 
-                unscaled_expected_values = scaler.inverse_transform(concatenated_input_and_outputs)
-                unscaled_predicted_values = scaler.inverse_transform(np.array([np.append(np.copy(test_input), result)]))
+                    unscaled_expected_values = scaler.inverse_transform(concatenated_input_and_outputs)
+                    unscaled_predicted_values = scaler.inverse_transform(np.array([np.append(np.copy(test_input), result)]))
 
-                expected_temp = unscaled_expected_values[:, -len(expected_value):][0]
-                predicted_temp = unscaled_predicted_values[:, -len(expected_value):][0]
+                    expected_temp = unscaled_expected_values[:, -len(expected_value):][0]
+                    predicted_temp = unscaled_predicted_values[:, -len(expected_value):][0]
+                else:
+                    expected_temp = expected_value
+                    predicted_temp = result
 
                 mse = ((predicted_temp - expected_temp)**2)
 
@@ -192,12 +274,11 @@ if __name__ == "__main__":
 
             differences_after_correction = []
 
-            oracle.compile(optimizer='rmsprop',
-                           loss='mse')
+            if LEARNING_METHOD == "neural":
+                oracle.compile(optimizer='rmsprop',
+                               loss='mse')
 
             averages_differences += [average_difference]
-
-            scores += [score]
 
             # MSE
             flatten_mse = np.array([d["mse_raw"] for d in plot_data]).flatten()
@@ -209,22 +290,21 @@ if __name__ == "__main__":
             rmse = flatten_rmse.mean()
             rmse_perc = flatten_rmse[flatten_rmse > np.percentile(flatten_rmse, PERCENTILE)].mean()
 
-            # if best_difference is None or average_difference < best_difference:
-            # if best_rmse is None or rmse < best_rmse:
-            if best_rmse_perc is None or rmse_perc < best_rmse_perc:
+            if best_rmse is None or rmse < best_rmse:
                 best_difference = average_difference
                 best_oracle = oracle
                 best_scaler = scaler
                 best_plot_data = plot_data
                 best_data = data
                 best_rmse_perc = rmse_perc
+                best_rmse = rmse
 
         print("##############################################")
         print(PARAMS)
         print("##############################################")
 
         mean_difference = float(np.mean(averages_differences))
-        mean_score = float(np.mean(score))
+        # mean_score = float(np.mean(score))
 
         # MSE
         flatten_mse = np.array([d["mse_raw"] for d in best_plot_data]).flatten()
@@ -238,7 +318,7 @@ if __name__ == "__main__":
 
         print("mean_difference: %s" % (mean_difference))
         print("best_difference: %s" % (best_difference))
-        print("mean_score: %s" % (mean_score))
+        # print("mean_score: %s" % (mean_score))
         print("best_score: %s" % (best_score))
         print("best_score: %s" % (best_score))
         print("best_mse: %s" % (mse))
@@ -253,12 +333,15 @@ if __name__ == "__main__":
         oracle = best_oracle
 
         # Dump oracle
-        oracle.save(neural_net_dump_path)
+        if LEARNING_METHOD == "neural":
+            oracle.save(neural_net_dump_path)
+        else:
+            joblib.dump(best_oracle, neural_net_dump_path)
 
         # Dump scaler
         random_scaler_filename = f"scaler_{uuid.uuid4()}"
         random_scaler_path = f"data/{random_scaler_filename}"
-        joblib.dump(scaler, random_scaler_path)
+        joblib.dump(best_scaler, random_scaler_path)
 
         COMPARISON_PLOT_DATA += [{
             "epoch": PARAMS.get("epoch"),
@@ -271,13 +354,16 @@ if __name__ == "__main__":
             "rmse_perc": rmse_perc,
             "dump_path": neural_net_dump_path,
             "tmp_figures_folder": tmp_figures_folder,
-            "scaler_path": random_scaler_path
+            "scaler_path": random_scaler_path,
+            "method": LEARNING_METHOD
         }]
 
         # Draw the comparison between actual data and prediction:
         # sorted_plot_data = sorted(best_plot_data, key=lambda d: d["y_actual"])
 
-        start_step = int(0.80 * len(best_plot_data))
+        server_idx = servers_names_raw.index(SERVER_ID)
+
+        start_step = int(0 * len(best_plot_data))
         end_step = int(1.0 * len(best_plot_data))
 
         sorted_plot_data = sorted(best_plot_data, key=lambda d: d["x"])[start_step:end_step]
@@ -286,8 +372,8 @@ if __name__ == "__main__":
         ax = plt.axes()
 
         x_data = [d["x"] for d in sorted_plot_data]
-        y1_data = [d["temp_actual"][SERVER_ID] for d in sorted_plot_data]
-        y2_data = [d["temp_pred"][SERVER_ID] for d in sorted_plot_data]
+        y1_data = [d["temp_actual"][server_idx] for d in sorted_plot_data]
+        y2_data = [d["temp_pred"][server_idx] for d in sorted_plot_data]
         x_data = range(0, len(y1_data))
 
         ax.plot(x_data, y1_data, color='blue', label='actual temp.')
@@ -296,7 +382,7 @@ if __name__ == "__main__":
         plt.legend()
 
         plt.xlabel('Time (hour)')
-        plt.ylabel('Back temperature of ecotype-%s (deg. C)' % SERVER_ID)
+        plt.ylabel('Back temperature of %s (deg. C)' % SERVER_ID)
         plt.title("%s" % PARAMS)
 
         plt.savefig(("%s/training_%s.pdf" % (tmp_figures_folder, PARAMS))
@@ -312,7 +398,13 @@ if __name__ == "__main__":
                            end_date=validation_end_date,
                            group_by=GROUP_BY,
                            comparison_plot_data=COMPARISON_PLOT_DATA,
-                           server_id=SERVER_ID)
+                           server_id=SERVER_ID,
+                           learning_method=LEARNING_METHOD,
+                           servers_names_raw=servers_names_raw,
+                           use_scaler=USE_SCALER,
+                           x_train=x_train,
+                           y_train=y_train,
+                           tss_train=tss_train)
 
     key = "rmse"
 
