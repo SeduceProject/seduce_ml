@@ -8,52 +8,25 @@ import time
 from sklearn.preprocessing import MinMaxScaler
 
 
-ADD_EXTERNAL_TEMPERATURE = True
-ADD_RETURN_AIR_TEMPERATURE = True
-
-
 def compute_average_consumption(x):
     return np.mean(x)
-
-
-ADDITIONAL_VARIABLES = [
-    {
-        "name": "ecotype_40_past_temp",
-        "server_temperature": "ecotype-40",
-        "shift": True
-    },
-    # # # # Consumption
-    {
-        "name": "ecotype_40_past_cons",
-        "server_consumption": "ecotype-40",
-        "shift": True
-    },
-    {
-        "name": "avg_consumption",
-        "consumption_function": compute_average_consumption,
-        "shift": False
-    },
-    {
-        "name": "past_avg_consumption",
-        "consumption_function": compute_average_consumption,
-        "shift": True
-    },
-]
 
 
 def generate_real_consumption_data(start_date=None,
                                    end_date=None,
                                    show_progress=True,
-                                   data_file_path="data.json",
+                                   data_file_path="data/data_60m.json",
                                    group_by=60,
                                    scaler=None,
-                                   use_scaler=True):
+                                   use_scaler=True,
+                                   additional_variables=[]):
 
     seduce_infrastructure_tree = requests.get("https://api.seduce.fr/infrastructure/description/tree").json()
 
     servers_names_raw = [f"ecotype-{i}" for i in range(1, 49)]
     servers_names_raw = sorted(servers_names_raw, key=lambda s: int(s.split("-")[1]))
 
+    # selected_servers_names_raw = [f"ecotype-{i}" for i in range(37, 49)]
     selected_servers_names_raw = [f"ecotype-{i}" for i in range(40, 41)]
     selected_servers_names_raw = sorted(selected_servers_names_raw, key=lambda s: int(s.split("-")[1]))
 
@@ -191,7 +164,7 @@ def generate_real_consumption_data(start_date=None,
         with open(data_file_path, "r") as data_file:
             data = json.load(data_file)
 
-    for additional_var in ADDITIONAL_VARIABLES:
+    for additional_var in additional_variables:
         if "sensor" in additional_var:
             additional_var_dict = data.get("sensors_data")[additional_var.get("sensor")]
             variables_values = [b
@@ -265,7 +238,7 @@ def generate_real_consumption_data(start_date=None,
         else:
             y = np.append(y, z, axis=1)
 
-    for additional_var in ADDITIONAL_VARIABLES:
+    for additional_var in additional_variables:
 
         if additional_var.get("exclude_from_training_data", False):
             continue

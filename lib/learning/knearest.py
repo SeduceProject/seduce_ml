@@ -16,5 +16,5 @@ class KNearestOracle(object):
         close_points = [t4 for t4 in points_with_distance if (np.sqrt((t4[1][0] - x_input[0][0]) ** 2)) < 2]
         sorted_points = sorted(close_points, key=lambda t4: t4[0])
         selected_points = [t4[-2] for t4 in sorted_points[0:NB_NEIGHBOURS]]
-        result = np.mean(selected_points)
+        result = np.mean(selected_points, axis=0)
         return [result]
