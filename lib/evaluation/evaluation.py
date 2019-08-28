@@ -8,7 +8,11 @@ DEFAULT_BATCH_SIZE = 1000
 DEFAULT_EPOCH = 300
 
 
-def evaluate(learning_method, x_train, y_train, tss_train, x_test, y_test, tss_test, scaler=None, params={}, percentile=80):
+def evaluate(learning_method, x_train, y_train, tss_train, x_test, y_test, tss_test, scaler=None, params=None, percentile=80):
+
+    if params is None:
+        params = {}
+
     plot_data = []
 
     # Build the oracle
@@ -39,7 +43,7 @@ def evaluate(learning_method, x_train, y_train, tss_train, x_test, y_test, tss_t
     considered_y_set = y_test
 
     sum_squared_difference = 0
-    for idx in range(0, len(considered_y_set)):
+    for idx, e in enumerate(considered_y_set):
         test_input = np.array([considered_x_set[idx]])
         expected_value = considered_y_set[idx]
 

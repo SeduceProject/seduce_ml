@@ -36,5 +36,3 @@ def train_oracle(oracle, data, epochs, batch_size):
                data.get("y"),
                epochs=epochs,
                batch_size=batch_size)
-
-    pass

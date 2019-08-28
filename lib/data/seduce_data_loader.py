@@ -15,11 +15,17 @@ def compute_average_consumption(x):
 def generate_real_consumption_data(start_date=None,
                                    end_date=None,
                                    show_progress=True,
-                                   data_file_path="data/data_60m.json",
+                                   data_file_path=None,
                                    group_by=60,
                                    scaler=None,
                                    use_scaler=True,
-                                   additional_variables=[]):
+                                   additional_variables=None):
+
+    if data_file_path is None:
+        data_file_path = "data/data_60m.json"
+
+    if additional_variables is None:
+        additional_variables = []
 
     seduce_infrastructure_tree = requests.get("https://api.seduce.fr/infrastructure/description/tree").json()
 

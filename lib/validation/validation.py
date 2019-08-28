@@ -27,7 +27,7 @@ def validate_seduce_ml(x, y, tss, server_id, learning_method, servers_names_raw,
 
     plot_data = []
 
-    for idx in range(0, len(y)):
+    for idx, e in enumerate(y):
         test_input = np.array([x[idx]])
         expected_value = y[idx]
 
