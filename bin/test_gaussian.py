@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+from sklearn.gaussian_process.kernels import RBF
 from math import sin, cos, tan
 
 NOISE_LEVEL = 0.3

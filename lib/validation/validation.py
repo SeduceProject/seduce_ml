@@ -29,7 +29,7 @@ def validate_seduce_ml(x, y, tss, server_id, learning_method, servers_names_raw,
 
     plot_data = []
 
-    for idx, e in enumerate(y):
+    for idx, _ in enumerate(y):
         test_input = np.array([x[idx]])
         expected_value = y[idx]
 
@@ -171,7 +171,6 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
     test_input_reusing_past_pred = None
     time_periods_without_real_temp = 20
 
-    scaled_last_past_temperature = None
     delta_temp_unscaled = None
 
     for (idx, (e, ts)) in enumerate(zip(y, tss)):

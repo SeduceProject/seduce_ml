@@ -1,5 +1,4 @@
-import numpy as np
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+from sklearn.gaussian_process.kernels import RBF
 from sklearn.gaussian_process import GaussianProcessRegressor
 
 NB_NEIGHBOURS = 5
