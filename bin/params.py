@@ -1,8 +1,10 @@
 import time
+import numpy as np
+
 
 EPOCH_COUNT = 3000
 BATCH_SIZE = 1000
-GROUP_BY = 60
+GROUP_BY = 10
 PERCENTILE = 80
 
 
@@ -32,12 +34,20 @@ NETWORK_PATH = "last"
 # validation_end_date = "2019-08-19T18:00:00.000Z"
 # # # </DEBUG AFTER HOLIDAYS>
 
-# <DEBUG DATE>
-start_date = "2019-07-20T00:00:00.000Z"
-end_date = "2019-08-20T00:00:00.000Z"
+# # <DEBUG DATE OK>
+# start_date = "2019-06-01T00:00:00.000Z"
+# end_date = "2019-08-27T11:00:00.000Z"
+#
+# validation_start_date = "2019-08-27T12:00:00.000Z"
+# validation_end_date = "2019-09-03T12:00:00.000Z"
+# # </DEBUG DATE OK>
 
-validation_start_date = "2019-08-20T01:00:00.000Z"
-validation_end_date = "2019-08-27T22:00:00.000Z"
+# <DEBUG DATE>
+start_date = "2019-08-20T00:00:00.000Z"
+end_date = "2019-08-27T11:00:00.000Z"
+
+validation_start_date = "2019-08-27T12:00:00.000Z"
+validation_end_date = "2019-08-31T12:00:00.000Z"
 # </DEBUG DATE>
 
 tmp_figures_folder = "tmp/%s" % time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time()))
@@ -46,7 +56,7 @@ tmp_figures_folder = "tmp/%s" % time.strftime("%Y_%m_%d__%H_%M_%S", time.localti
 COMPARISON_PLOT_DATA = []
 
 EPOCHS = [
-    300,
+    500,
     # 1000,
     # 2000,
     # 5000,
@@ -57,7 +67,9 @@ NB_LAYERS = [
     # 4,
 ]
 NEURONS_PER_LAYER = [
-    400,
+    # 16,
+    32,
+    # 64
     # 128,
     # 256,
 ]
@@ -71,18 +83,19 @@ ACTIVATION_FUNCTIONS = [
     # "exponential"
 ]
 
-NB_RUN = 5
+SHUFFLE = True
 
 SERVER_ID = "ecotype-40"
 
 USE_SCALER = True
 # USE_SCALER = False
 
-LEARNING_METHOD = "neural"
+# LEARNING_METHOD = "neural"
 # LEARNING_METHOD = "knearest"
+LEARNING_METHOD = "gaussian"
 
 NEURAL_MINIMAL_RMSE = 0.900
-MAX_ITERATION_COUNT = 5
+MAX_ITERATION_COUNT = 1
 
 TEST_PARAMS = [
     {
@@ -97,50 +110,107 @@ TEST_PARAMS = [
     for activation_function in ACTIVATION_FUNCTIONS
 ]
 
-ADDITIONAL_VARIABLES = [
-    {
-        "name": "ecotype_40_past_temp",
-        "server_temperature": "ecotype-40",
-        "shift": True
-    },
-    # # # # Consumption
-    # {
-    #     "name": "ecotype_40_past_cons",
-    #     "server_consumption": "ecotype-40",
-    #     "shift": True
-    # },
-    # {
-    #     "name": "avg_consumption",
-    #     "consumption_function": compute_average_consumption,
-    #     "shift": False
-    # },
-    # {
-    #     "name": "past_avg_consumption",
-    #     "consumption_function": compute_average_consumption,
-    #     "shift": True
-    # },
-    # *[
-    #     {
-    #         "name": f"ecotype_{i}_past_cons",
-    #         "server_consumption": f"ecotype-{i}",
-    #         "shift": True
-    #     }
-    #     for i in range(1, 49)
-    # ],
-    # *[
-    #     {
-    #         "name": f"ecotype_{i}_cons",
-    #         "server_consumption": f"ecotype-{i}",
-    #         "shift": False
-    #     }
-    #     for i in range(1, 49)
-    # ],
-    # *[
-    #     {
-    #         "name": f"ecotype_{i}_past_temp",
-    #         "server_temperature": f"ecotype-{i}",
-    #         "shift": True
-    #     }
-    #     for i in range(37, 49)
-    # ],
-]
+
+def compute_average_consumption(x):
+    return np.mean(x)
+
+
+if LEARNING_METHOD == "knearest":
+    ADDITIONAL_VARIABLES = [
+        {
+            "name": "ecotype_40_past_temp_n-1",
+            "server_temperature": "ecotype-40",
+            "shift": True,
+            "rescale": lambda x: x
+        },
+        # {
+        #     "name": "ecotype_40_past_temp_n-2",
+        #     "server_temperature": "ecotype-40",
+        #     "shift": True,
+        #     "shift_count": 2,
+        #     "rescale": lambda x: x
+        # },
+        # Consumption
+        {
+            "name": "ecotype_40_past_cons_n-1",
+            "server_consumption": "ecotype-40",
+            "shift": True
+        },
+        {
+            "name": "ecotype_40_past_cons_n-2",
+            "server_consumption": "ecotype-40",
+            "shift_count": 2,
+            "shift": True
+        },
+    ]
+elif LEARNING_METHOD == "gaussian":
+    ADDITIONAL_VARIABLES = [
+        {
+            "name": "ecotype_40_past_temp_n-1",
+            "server_temperature": "ecotype-40",
+            "shift": True,
+            "rescale": lambda x: x
+        },
+        # {
+        #     "name": "ecotype_40_past_temp_n-2",
+        #     "server_temperature": "ecotype-40",
+        #     "shift": True,
+        #     "shift_count": 2,
+        #     "rescale": lambda x: x
+        # },
+        # Consumption
+        {
+            "name": "ecotype_40_past_cons_n-1",
+            "server_consumption": "ecotype-40",
+            "shift": True
+        },
+        {
+            "name": "ecotype_40_past_cons_n-2",
+            "server_consumption": "ecotype-40",
+            "shift_count": 2,
+            "shift": True
+        },
+    ]
+elif LEARNING_METHOD == "neural":
+    ADDITIONAL_VARIABLES = [
+        {
+            "name": "ecotype_40_past_temp_n-1",
+            "server_temperature": "ecotype-40",
+            "shift": True,
+            "rescale": lambda x: x
+        },
+        # {
+        #     "name": "ecotype_40_past_temp_n-2",
+        #     "server_temperature": "ecotype-40",
+        #     "shift": True,
+        #     "shift_count": 2,
+        #     "rescale": lambda x: x
+        # },
+        # {
+        #     "name": "ecotype_40_past_temp_n-3",
+        #     "server_temperature": "ecotype-40",
+        #     "shift": True,
+        #     "shift_count": 3,
+        #     "rescale": lambda x: x
+        # },
+        # Consumption
+        {
+            "name": "ecotype_40_past_cons_n-1",
+            "server_consumption": "ecotype-40",
+            "shift": True
+        },
+        {
+            "name": "ecotype_40_past_cons_n-2",
+            "server_consumption": "ecotype-40",
+            "shift_count": 2,
+            "shift": True
+        },
+        {
+            "name": "ecotype_40_past_cons_n-3",
+            "server_consumption": "ecotype-40",
+            "shift_count": 3,
+            "shift": True
+        },
+    ]
+else:
+    raise Exception(f"I could not understand which learning method should be used ({LEARNING_METHOD})")

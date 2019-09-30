@@ -3,12 +3,13 @@ import numpy as np
 from numpy.linalg import norm
 import math
 from lib.learning.knearest import KNearestOracle
+from lib.learning.gaussian import GaussianProcessOracle
 
 DEFAULT_BATCH_SIZE = 1000
 DEFAULT_EPOCH = 300
 
 
-def evaluate(learning_method, x_train, y_train, tss_train, x_test, y_test, tss_test, scaler=None, params=None, percentile=80):
+def create_and_train_oracle(learning_method, x_train, y_train, tss_train, x_test, y_test, tss_test, scaler=None, params=None, percentile=80):
 
     if params is None:
         params = {}
@@ -36,6 +37,9 @@ def evaluate(learning_method, x_train, y_train, tss_train, x_test, y_test, tss_t
     elif learning_method == "knearest":
         # Build oracle using the "k-nearest neighbours" technique
         oracle = KNearestOracle(x_train, y_train, tss_train)
+    elif learning_method == "gaussian":
+        # Build oracle using the "gaussian process" technique
+        oracle = GaussianProcessOracle(x_train, y_train, tss_train)
     else:
         raise Exception("Could not find what learning technique should be used :(")
 
@@ -49,6 +53,8 @@ def evaluate(learning_method, x_train, y_train, tss_train, x_test, y_test, tss_t
 
         if learning_method == "neural":
             result = oracle.predict(test_input)[0][0]
+        elif learning_method == "gaussian":
+            result, sigma = oracle.predict(test_input)
         else:
             result = oracle.predict(test_input)
 
@@ -66,6 +72,8 @@ def evaluate(learning_method, x_train, y_train, tss_train, x_test, y_test, tss_t
 
         if learning_method == "neural":
             result = oracle.predict(test_input)[0]
+        elif learning_method == "gaussian":
+            result, sigma = oracle.predict(test_input)
         else:
             result = oracle.predict(test_input)[0]
 

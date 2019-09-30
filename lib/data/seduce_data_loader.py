@@ -8,10 +8,6 @@ import time
 from sklearn.preprocessing import MinMaxScaler
 
 
-def compute_average_consumption(x):
-    return np.mean(x)
-
-
 def generate_real_consumption_data(start_date=None,
                                    end_date=None,
                                    show_progress=True,
@@ -208,7 +204,12 @@ def generate_real_consumption_data(start_date=None,
         if not additional_var.get("shift", False):
             data[additional_var.get("name")] = variables_values
         else:
-            data[additional_var.get("name")] = [variables_values[0]] + variables_values[0:-1]
+            shift_count = additional_var.get("shift_count", 1)
+            new_values = [variables_values[shift_count-1] for x in range(0, shift_count)] + variables_values[0:-shift_count]
+            data[additional_var.get("name")] = new_values
+
+        if "rescale" in additional_var:
+            data[additional_var.get("name")] = [additional_var.get("rescale")(x) for x in data[additional_var.get("name")]]
 
     x = None
     y = None

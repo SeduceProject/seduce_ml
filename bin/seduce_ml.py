@@ -6,8 +6,8 @@ from lib.data.seduce_data_loader import generate_real_consumption_data
 import os
 from texttable import Texttable
 from sklearn.externals import joblib
-from lib.validation.validation import validate_seduce_ml
-from lib.evaluation.evaluation import evaluate
+from lib.validation.validation import validate_seduce_ml, evaluate_prediction_power
+from lib.oracle.oracle import create_and_train_oracle
 from sklearn.model_selection import train_test_split
 from bin.params import *
 
@@ -49,6 +49,7 @@ if __name__ == "__main__":
             x, y, tss, data, scaler, shape, servers_names_raw = \
                 generate_real_consumption_data(start_date,
                                                end_date,
+                                               data_file_path=f"data/data_{GROUP_BY}m.json",
                                                group_by=GROUP_BY,
                                                use_scaler=USE_SCALER,
                                                additional_variables=ADDITIONAL_VARIABLES)
@@ -64,18 +65,18 @@ if __name__ == "__main__":
                                                                                      y,
                                                                                      tss,
                                                                                      test_size=1 - train_proportion,
-                                                                                     shuffle=False)
+                                                                                     shuffle=SHUFFLE)
 
-            (oracle, scaler, plot_data, rmse_perc, rmse) = evaluate(learning_method=LEARNING_METHOD,
-                                                                    x_train=x_train,
-                                                                    y_train=y_train,
-                                                                    tss_train=tss_train,
-                                                                    x_test=x_test,
-                                                                    y_test=y_test,
-                                                                    tss_test=tss_test,
-                                                                    scaler=scaler,
-                                                                    params=PARAMS,
-                                                                    percentile=PERCENTILE)
+            (oracle, scaler, plot_data, rmse_perc, rmse) = create_and_train_oracle(learning_method=LEARNING_METHOD,
+                                                                                   x_train=x_train,
+                                                                                   y_train=y_train,
+                                                                                   tss_train=tss_train,
+                                                                                   x_test=x_test,
+                                                                                   y_test=y_test,
+                                                                                   tss_test=tss_test,
+                                                                                   scaler=scaler,
+                                                                                   params=PARAMS,
+                                                                                   percentile=PERCENTILE)
 
             if best_rmse is None or rmse < best_rmse:
                 # best_difference = average_difference
@@ -155,8 +156,8 @@ if __name__ == "__main__":
         y2_data = [d["temp_pred"][server_idx] for d in sorted_plot_data]
         x_data = range(0, len(y1_data))
 
-        ax.plot(x_data, y1_data, color='blue', label='actual temp.')
-        ax.plot(x_data, y2_data, color='red', label='predicted temp.', alpha=0.5)
+        ax.plot(x_data, y1_data, color='blue', label='actual temp.', linewidth=0.5)
+        ax.plot(x_data, y2_data, color='red', label='predicted temp.', alpha=0.5, linewidth=0.5)
 
         plt.legend()
 
@@ -175,7 +176,7 @@ if __name__ == "__main__":
         x_valid, y_valid, tss_valid, data_valid, scaler, shape, servers_names_raw = \
             generate_real_consumption_data(validation_start_date,
                                            validation_end_date,
-                                           data_file_path="data/data_validation_60m.json",
+                                           data_file_path=f"data/data_validation_{GROUP_BY}m.json",
                                            group_by=GROUP_BY,
                                            scaler=scaler,
                                            use_scaler=USE_SCALER,
@@ -189,11 +190,26 @@ if __name__ == "__main__":
                            f"activ_{PARAMS.get('activation_function')}"
         elif LEARNING_METHOD == "knearest":
             figure_label = f"validation_{LEARNING_METHOD}"
+        elif LEARNING_METHOD == "gaussian":
+            figure_label = f"validation_{LEARNING_METHOD}"
         else:
             raise Exception("Could not understand which learning method is used")
 
         # Validate data
         validate_seduce_ml(x=x_valid,
+                           y=y_valid,
+                           tss=tss_valid,
+                           server_id=SERVER_ID,
+                           learning_method=LEARNING_METHOD,
+                           servers_names_raw=servers_names_raw,
+                           use_scaler=USE_SCALER,
+                           scaler=scaler,
+                           oracle_path=neural_net_dump_path,
+                           tmp_figures_folder=tmp_figures_folder,
+                           figure_label=figure_label)
+
+        # Evaluate prediction power
+        evaluate_prediction_power(x=x_valid,
                            y=y_valid,
                            tss=tss_valid,
                            server_id=SERVER_ID,
