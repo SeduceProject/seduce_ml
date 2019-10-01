@@ -91,8 +91,8 @@ USE_SCALER = True
 # USE_SCALER = False
 
 # LEARNING_METHOD = "neural"
-# LEARNING_METHOD = "knearest"
-LEARNING_METHOD = "gaussian"
+LEARNING_METHOD = "knearest"
+# LEARNING_METHOD = "gaussian"
 
 NEURAL_MINIMAL_RMSE = 0.900
 MAX_ITERATION_COUNT = 1
@@ -123,13 +123,13 @@ if LEARNING_METHOD == "knearest":
             "shift": True,
             "rescale": lambda x: x
         },
-        # {
-        #     "name": "ecotype_40_past_temp_n-2",
-        #     "server_temperature": "ecotype-40",
-        #     "shift": True,
-        #     "shift_count": 2,
-        #     "rescale": lambda x: x
-        # },
+        {
+            "name": "ecotype_40_past_temp_n-2",
+            "server_temperature": "ecotype-40",
+            "shift": True,
+            "shift_count": 2,
+            "rescale": lambda x: x
+        },
         # Consumption
         {
             "name": "ecotype_40_past_cons_n-1",
@@ -144,34 +144,6 @@ if LEARNING_METHOD == "knearest":
         },
     ]
 elif LEARNING_METHOD == "gaussian":
-    ADDITIONAL_VARIABLES = [
-        {
-            "name": "ecotype_40_past_temp_n-1",
-            "server_temperature": "ecotype-40",
-            "shift": True,
-            "rescale": lambda x: x
-        },
-        # {
-        #     "name": "ecotype_40_past_temp_n-2",
-        #     "server_temperature": "ecotype-40",
-        #     "shift": True,
-        #     "shift_count": 2,
-        #     "rescale": lambda x: x
-        # },
-        # Consumption
-        {
-            "name": "ecotype_40_past_cons_n-1",
-            "server_consumption": "ecotype-40",
-            "shift": True
-        },
-        {
-            "name": "ecotype_40_past_cons_n-2",
-            "server_consumption": "ecotype-40",
-            "shift_count": 2,
-            "shift": True
-        },
-    ]
-elif LEARNING_METHOD == "neural":
     ADDITIONAL_VARIABLES = [
         {
             "name": "ecotype_40_past_temp_n-1",
@@ -205,12 +177,52 @@ elif LEARNING_METHOD == "neural":
             "shift_count": 2,
             "shift": True
         },
+    ]
+elif LEARNING_METHOD == "neural":
+    ADDITIONAL_VARIABLES = [
         {
-            "name": "ecotype_40_past_cons_n-3",
+            "name": "ecotype_40_past_temp_n-1",
+            "server_temperature": "ecotype-40",
+            "shift": True,
+            "rescale": lambda x: x
+        },
+        {
+            "name": "ecotype_40_past_temp_n-2",
+            "server_temperature": "ecotype-40",
+            "shift": True,
+            "shift_count": 2,
+            "rescale": lambda x: x
+        },
+        # Consumption
+        {
+            "name": "ecotype_40_past_cons_n-1",
             "server_consumption": "ecotype-40",
-            "shift_count": 3,
             "shift": True
         },
+        {
+            "name": "ecotype_40_past_cons_n-2",
+            "server_consumption": "ecotype-40",
+            "shift_count": 2,
+            "shift": True
+        },
+        # {
+        #     "name": "ecotype_40_past_cons_n-3",
+        #     "server_consumption": "ecotype-40",
+        #     "shift_count": 3,
+        #     "shift": True
+        # },
+        # {
+        #     "name": "ecotype_40_past_cons_n-4",
+        #     "server_consumption": "ecotype-40",
+        #     "shift_count": 4,
+        #     "shift": True
+        # },
+        # {
+        #     "name": "ecotype_40_past_cons_n-5",
+        #     "server_consumption": "ecotype-40",
+        #     "shift_count": 5,
+        #     "shift": True
+        # },
     ]
 else:
     raise Exception(f"I could not understand which learning method should be used ({LEARNING_METHOD})")

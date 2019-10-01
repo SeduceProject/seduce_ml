@@ -126,22 +126,62 @@ def validate_seduce_ml(x, y, tss, server_id, learning_method, servers_names_raw,
     return rmse, rmse_perc
 
 
-def unscale(x, scaler):
-    return scaler.inverse_transform(np.array([np.append(np.copy(x), 0)]))[:, :-1]
+def unscale_input(x, scaler):
+    scaler_columns_count = scaler.scale_.shape[0]
+    input_columns_count = x.shape[1]
+    temp_array = np.append(x, np.zeros((scaler_columns_count - input_columns_count)))
+    return scaler.inverse_transform(np.array([temp_array]))[:, :input_columns_count]
 
 
-def rescale(x, scaler):
-    return scaler.transform(np.array([np.append(np.copy(x), 0)]))[:, :-1]
+def rescale_input(x, scaler):
+    scaler_columns_count = scaler.scale_.shape[0]
+    input_columns_count = x.shape[1]
+    temp_array = np.append(x, np.zeros((scaler_columns_count - input_columns_count)))
+    return scaler.transform(np.array([temp_array]))[:, :input_columns_count]
 
 
-def remove_delta_temp(x, additional_variables, delta_temp_unscaled, scaler):
-    unscaled_x = unscale(x, scaler)
+def unscale_output(y, scaler):
+    scaler_columns_count = scaler.scale_.shape[0]
+    output_columns_count = y.shape[0]
+    temp_array = np.append(np.zeros((scaler_columns_count - output_columns_count)), y)
+    return scaler.inverse_transform(np.array([temp_array]))[:, -output_columns_count:]
+
+
+def rescale_output(y, scaler):
+    scaler_columns_count = scaler.scale_.shape[0]
+    output_columns_count = y.shape[0]
+    temp_array = np.append(np.zeros((scaler_columns_count - output_columns_count)), y)
+    return scaler.inverse_transform(np.array([temp_array]))[:, -output_columns_count:]
+
+
+def shift_data(x, additional_variables, scaler, predicted_temp_reusing_past_pred):
+    unscaled_x = unscale_input(x, scaler)
+
+    unscaled_x_old = unscaled_x.copy()
+
+    shifted_old_temp_values_map = {}
+
+    # Extract value in order to easily shift them (n-1 => n-2; n-2 => n-3; ...)
+    for idx, e in enumerate(additional_variables, start=x.shape[1] - len(additional_variables)):
+        if all([pattern in e.get("name") for pattern in ["temp", "past_temp", "n-"]]):
+            hostname, time_step_str = e.get("name").split("_past_temp_n-")
+            time_step = int(time_step_str)
+            shifted_old_temp_values_map[f"{hostname}_{time_step}"] = unscaled_x_old[-1, idx]
 
     for idx, e in enumerate(additional_variables, start=x.shape[1] - len(additional_variables)):
-        if "temp" in e.get("name"):
-            unscaled_x[-1, idx] -= delta_temp_unscaled
+        # Reuse the past prediction
+        if all([pattern in e.get("name") for pattern in ["temp", "past_temp", "n-"]]):
+            hostname, time_step_str = e.get("name").split("_past_temp_n-")
+            time_step = int(time_step_str)
 
-    rescaled_x = rescale(unscaled_x, scaler)
+            if time_step == 1:
+                unscaled_x[-1, idx] = predicted_temp_reusing_past_pred
+            else:
+                unscaled_x[-1, idx] = shifted_old_temp_values_map[f"{hostname}_{time_step-1}"]
+
+    # print(f"{unscaled_x_old} vs {unscaled_x}")
+
+    rescaled_x = rescale_input(unscaled_x, scaler)
 
     return rescaled_x
 
@@ -169,25 +209,31 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
     plot_data = []
 
     test_input_reusing_past_pred = None
-    time_periods_without_real_temp = 20
+    time_periods_without_real_temp = 12
 
-    delta_temp_unscaled = None
+    delta = 0
+    resync = True
+    resync_count = 0
+    expected_temp = None
 
     for (idx, (e, ts)) in enumerate(zip(y, tss)):
 
         ts_to_date = dt.datetime(*[int(x)
                                    for x in [a.split("-") + b.split(":")
-                                             for (a,b) in [ts.replace("Z", "").split("T")]][0]])
+                                             for (a, b) in [ts.replace("Z", "").split("T")]][0]])
 
         if idx < 0:
             continue
 
-        if idx > 400:
+        if idx > 800:
             break
 
         if idx > 0 and (idx % time_periods_without_real_temp) != 0:
             resync = False
         else:
+            resync = True
+
+        if abs(delta) > 2.0:
             resync = True
 
         test_input = np.array([x[idx]])
@@ -204,42 +250,37 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
         test_input_copy = test_input.copy()
 
         if not resync:
-            plop = remove_delta_temp(test_input_copy, ADDITIONAL_VARIABLES, delta_temp_unscaled, scaler)
-            test_input_copy = plop
+            test_input_copy = shift_data(test_input_copy, ADDITIONAL_VARIABLES, scaler, predicted_temp_reusing_past_pred)
+        else:
+            if expected_temp is not None:
+                test_input_copy = shift_data(test_input_copy, ADDITIONAL_VARIABLES, scaler, expected_temp)
+            # print("====================================")
 
         if learning_method == "gaussian":
             result_reusing_past_pred, sigma_reusing_past_pred = oracle.predict(test_input_copy)
         else:
             result_reusing_past_pred = oracle.predict(test_input_copy)
 
-        if use_scaler:
-            unscaled_expected_values = scaler.inverse_transform(np.array([np.append(np.copy(test_input), expected_value)]))
-            unscaled_predicted_values = scaler.inverse_transform(np.array([np.append(np.copy(test_input), result)]))
-            unscaled_predicted_values_reusing_past_pred = scaler.inverse_transform(np.array([np.append(np.copy(test_input_copy), result_reusing_past_pred)]))
+        if type(result) == list:
+            result = result[0]
+        if type(result_reusing_past_pred) == list:
+            result_reusing_past_pred = result_reusing_past_pred[0]
 
-            expected_temp = unscaled_expected_values[:, -len(expected_value):][0]
-            predicted_temp = unscaled_predicted_values[:, -len(expected_value):][0]
-            predicted_temp_reusing_past_pred = unscaled_predicted_values_reusing_past_pred[:, -len(expected_value):][0]
+        expected_temp = unscale_output(expected_value, scaler)[0]
+        predicted_temp = unscale_output(result, scaler)[0]
 
-            test_input_reusing_past_pred = test_input.copy()
-
-            if idx > 0:
-                unscaled_expected_values_copy = unscaled_expected_values.copy()
-                unscaled_expected_values_copy[0][1] = unscaled_predicted_values_reusing_past_pred[0][-1]
-                scaled_expected_values_copy = scaler.transform(unscaled_expected_values_copy)
-                scaled_last_past_temperature = scaled_expected_values_copy[0][1]
-            else:
-                if learning_method == "gaussian":
-                    scaled_last_past_temperature = result_reusing_past_pred[0]
-                else:
-                    scaled_last_past_temperature = result_reusing_past_pred[0][0]
-            # print(f"   b:{scaler.transform(unscaled_predicted_values_reusing_past_pred)}")
-
-            if resync:
-                delta_temp_unscaled = expected_temp - predicted_temp_reusing_past_pred
+        if not resync:
+            delta_multiplied = delta * (idx % time_periods_without_real_temp) / (time_periods_without_real_temp)
+            # print(f"{delta} vs {delta_multiplied}")
+            predicted_temp_reusing_past_pred = unscale_output(result_reusing_past_pred, scaler)[0] #+ delta_multiplied
         else:
-            expected_temp = expected_value
-            predicted_temp = result
+            resync_count += 1
+            delta = (expected_temp - predicted_temp)
+            predicted_temp_reusing_past_pred = expected_temp
+            # predicted_temp_reusing_past_pred = predicted_temp
+            # print(f"============ {resync_count} ==============")
+
+        # print(f"expected_temp:{expected_temp} vs predicted_temp:{predicted_temp} vs predicted_temp_reusing_past_pred:{predicted_temp_reusing_past_pred}")
 
         mse = ((predicted_temp_reusing_past_pred - expected_temp) ** 2)
 
@@ -258,6 +299,7 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
             "resync": resync,
             "ts_to_date": ts_to_date
         }]
+
 
     # RMSE
     flatten_rmse = np.array([d["rmse_raw"] for d in plot_data]).flatten()
