@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.externals import joblib
 import datetime as dt
-import random
-from bin.params import ADDITIONAL_VARIABLES
+from lib.data.seduce_data_loader import get_additional_variables
 
 
 def validate_seduce_ml(x, y, tss, server_id, learning_method, servers_names_raw, use_scaler, oracle_path=None, oracle=None, scaler=None, scaler_path=None, tmp_figures_folder=None, figure_label=""):
@@ -186,7 +185,9 @@ def shift_data(x, additional_variables, scaler, predicted_temp_reusing_past_pred
     return rescaled_x
 
 
-def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_names_raw, use_scaler, oracle_path=None, oracle=None, scaler=None, scaler_path=None, tmp_figures_folder=None, figure_label=""):
+def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_names_raw, use_scaler, oracle_path=None, oracle=None, scaler=None, scaler_path=None, tmp_figures_folder=None, figure_label="", produce_figure=True):
+
+    additional_variable = get_additional_variables(server_id)
 
     server_idx = servers_names_raw.index(server_id)
 
@@ -209,9 +210,8 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
     plot_data = []
 
     test_input_reusing_past_pred = None
-    time_periods_without_real_temp = 12
+    time_periods_without_real_temp = 10
 
-    delta = 0
     resync = True
     resync_count = 0
     expected_temp = None
@@ -222,18 +222,15 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
                                    for x in [a.split("-") + b.split(":")
                                              for (a, b) in [ts.replace("Z", "").split("T")]][0]])
 
-        if idx < 0:
-            continue
-
-        if idx > 800:
-            break
+        # if idx < 0:
+        #     continue
+        #
+        # if idx > 800:
+        #     break
 
         if idx > 0 and (idx % time_periods_without_real_temp) != 0:
             resync = False
         else:
-            resync = True
-
-        if abs(delta) > 2.0:
             resync = True
 
         test_input = np.array([x[idx]])
@@ -250,11 +247,10 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
         test_input_copy = test_input.copy()
 
         if not resync:
-            test_input_copy = shift_data(test_input_copy, ADDITIONAL_VARIABLES, scaler, predicted_temp_reusing_past_pred)
+            test_input_copy = shift_data(test_input_copy, additional_variable, scaler, predicted_temp_reusing_past_pred)
         else:
             if expected_temp is not None:
-                test_input_copy = shift_data(test_input_copy, ADDITIONAL_VARIABLES, scaler, expected_temp)
-            # print("====================================")
+                test_input_copy = shift_data(test_input_copy, additional_variable, scaler, expected_temp)
 
         if learning_method == "gaussian":
             result_reusing_past_pred, sigma_reusing_past_pred = oracle.predict(test_input_copy)
@@ -270,17 +266,9 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
         predicted_temp = unscale_output(result, scaler)[0]
 
         if not resync:
-            delta_multiplied = delta * (idx % time_periods_without_real_temp) / (time_periods_without_real_temp)
-            # print(f"{delta} vs {delta_multiplied}")
-            predicted_temp_reusing_past_pred = unscale_output(result_reusing_past_pred, scaler)[0] #+ delta_multiplied
+            predicted_temp_reusing_past_pred = unscale_output(result_reusing_past_pred, scaler)[0]
         else:
-            resync_count += 1
-            delta = (expected_temp - predicted_temp)
-            predicted_temp_reusing_past_pred = expected_temp
-            # predicted_temp_reusing_past_pred = predicted_temp
-            # print(f"============ {resync_count} ==============")
-
-        # print(f"expected_temp:{expected_temp} vs predicted_temp:{predicted_temp} vs predicted_temp_reusing_past_pred:{predicted_temp_reusing_past_pred}")
+            predicted_temp_reusing_past_pred = predicted_temp
 
         mse = ((predicted_temp_reusing_past_pred - expected_temp) ** 2)
 
@@ -296,6 +284,7 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
             "temp_actual": expected_temp,
             "temp_pred": predicted_temp,
             "temp_pred_reusing_past_pred": predicted_temp_reusing_past_pred,
+            # "temp_pred_reusing_past_pred2": predicted_temp_reusing_past_pred2,
             "resync": resync,
             "ts_to_date": ts_to_date
         }]
@@ -306,7 +295,7 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
     rmse = flatten_rmse.mean()
     rmse_perc = flatten_rmse[flatten_rmse > np.percentile(flatten_rmse, 95)].mean()
 
-    if tmp_figures_folder is not None:
+    if tmp_figures_folder is not None and produce_figure:
 
         sorted_plot_data = sorted(plot_data, key=lambda d: d["x"])[start_step:end_step]
 
@@ -316,6 +305,7 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
         y1_data = [d["temp_actual"][server_idx] for d in sorted_plot_data]
         y2_data = [d["temp_pred"][server_idx] for d in sorted_plot_data]
         y3_data = [d["temp_pred_reusing_past_pred"][server_idx] for d in sorted_plot_data]
+        # y5_data = [d["temp_pred_reusing_past_pred2"][server_idx] for d in sorted_plot_data]
 
         synced_sorted_dts = [d["ts_to_date"] for d in sorted_plot_data if d["resync"]]
         y4_data = [d["temp_pred_reusing_past_pred"][server_idx] for d in sorted_plot_data if d["resync"]]
@@ -327,8 +317,13 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
 
         ax.plot(sorted_dts, y1_data, color='blue', label='actual temp.', linewidth=0.5)
         ax.plot(sorted_dts, y2_data, color='red', label='predicted temp.', alpha=0.5, linewidth=0.5)
-        ax.plot(sorted_dts, y3_data, color='green', label='predicted temp. (reusing past pred.)', alpha=0.5, linewidth=1.5)
-        ax.scatter(synced_sorted_dts, y4_data, color='orange', label='sync', alpha=0.5, linewidth=0.5)
+        ax.plot(sorted_dts, y3_data, color='green', label='predicted temp. (reusing past pred.)', alpha=0.5, linewidth=0.8)
+        # ax.plot(sorted_dts, y5_data, color='black', label='predicted temp. (reusing past pred.)', alpha=0.5, linewidth=0.8)
+        ax.scatter(synced_sorted_dts, y4_data, color='orange', marker='x', label='sync', alpha=0.5, linewidth=0.5)
+
+        for i, (a, b) in enumerate(zip(synced_sorted_dts, y4_data)):
+            ax.annotate(f"{i+1}", (a, b), fontsize=5)
+
         plt.legend()
 
         ax2 = ax.twinx()

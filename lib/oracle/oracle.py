@@ -5,35 +5,54 @@ import math
 from lib.learning.knearest import KNearestOracle
 from lib.learning.gaussian import GaussianProcessOracle
 
-DEFAULT_BATCH_SIZE = 1000
-DEFAULT_EPOCH = 300
+# DEFAULT_BATCH_SIZE = 1000
+# DEFAULT_EPOCH = 300
 
 
-def create_and_train_oracle(learning_method, x_train, y_train, tss_train, x_test, y_test, tss_test, scaler=None, params=None, percentile=80):
+def create_and_train_oracle(
+        learning_method,
+        x_train,
+        y_train,
+        tss_train,
+        x_test,
+        y_test,
+        tss_test,
+        epoch,
+        batch_size,
+        nb_inputs,
+        nb_outputs,
+        nb_layers,
+        neurons_per_layers,
+        activation_function,
+        scaler=None,
+        params=None,
+        percentile=90):
 
     if params is None:
         params = {}
 
     plot_data = []
+    score = -1
 
     # Build the oracle
     if learning_method == "neural":
-        oracle = build_oracle(nb_inputs=params.get("nb_inputs"),
-                              nb_outputs=params.get("nb_outputs"),
-                              hidden_layers_count=params.get("nb_layers"),
-                              neurons_per_hidden_layer=params.get("neurons_per_layers"),
-                              activation_function=params.get("activation_function"))
+        oracle = build_oracle(nb_inputs=nb_inputs,
+                              nb_outputs=nb_outputs,
+                              hidden_layers_count=nb_layers,
+                              neurons_per_hidden_layer=neurons_per_layers,
+                              activation_function=activation_function)
 
         train_oracle(oracle,
                      {
                          "x": x_train,
                          "y": y_train
                      },
-                     params.get("epoch", DEFAULT_EPOCH),
+                     epoch,
                      len(y_train))
 
         # Evaluate the neural network
-        score = oracle.evaluate(x_test, y_test, batch_size=params.get("batchsize", DEFAULT_BATCH_SIZE))
+        score = oracle.evaluate(x_test, y_test, batch_size=batch_size)
+        print(f"score: {score}")
     elif learning_method == "knearest":
         # Build oracle using the "k-nearest neighbours" technique
         oracle = KNearestOracle(x_train, y_train, tss_train)
@@ -101,7 +120,6 @@ def create_and_train_oracle(learning_method, x_train, y_train, tss_train, x_test
             "rmse_raw": np.sqrt(mse),
             "temp_actual": expected_temp,
             "temp_pred": predicted_temp,
-
         }]
 
     if learning_method == "neural":
@@ -113,4 +131,23 @@ def create_and_train_oracle(learning_method, x_train, y_train, tss_train, x_test
     rmse = flatten_rmse.mean()
     rmse_perc = flatten_rmse[flatten_rmse > np.percentile(flatten_rmse, percentile)].mean()
 
-    return oracle, scaler, plot_data, rmse_perc, rmse
+    return oracle, scaler, plot_data, rmse_perc, rmse, score
+
+
+class Oracle(object):
+
+    def __init__(self, oracle, scaler, metadata):
+        self.oracle = oracle
+        self.scaler = scaler
+        self.metadata = metadata
+
+    def describe_params(self):
+        return self.metadata
+
+    def predict(self, unscaled_input_values):
+        # Transform 'unscaled_input_values' -> 'scaled_input_values'
+        # Do a prediction from 'scaled_input_values' -> 'scaled_output_values'
+        # Transform 'scaled_output_values' -> 'unscaled_output_values'
+        # Return 'unscaled_ouput_values'
+
+        return None

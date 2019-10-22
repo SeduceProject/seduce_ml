@@ -55,7 +55,7 @@ class TestPrediction10m(unittest.TestCase):
         ]
 
         # Train the neural network
-        x, y, tss, data, scaler, shape, servers_names_raw = \
+        x, y, tss, data, scaler, shape, servers_names_raw, metadata = \
             generate_real_consumption_data(start_date,
                                            end_date,
                                            group_by=group_by,
@@ -94,7 +94,7 @@ class TestPrediction10m(unittest.TestCase):
 
             server_id = "ecotype-40"
 
-            x_valid, y_valid, tss_valid, data_valid, scaler, shape, servers_names_raw = \
+            x_valid, y_valid, tss_valid, data_valid, scaler, shape, servers_names_raw, metadata = \
                 generate_real_consumption_data(validation_start_date,
                                                validation_end_date,
                                                data_file_path=f"{DATA_TEST_FOLDER}/data_validation_10m.json",
@@ -153,7 +153,7 @@ class TestPrediction10m(unittest.TestCase):
         ]
 
         # Train the neural network
-        x, y, tss, data, scaler, shape, servers_names_raw = \
+        x, y, tss, data, scaler, shape, servers_names_raw, metadata = \
             generate_real_consumption_data(start_date,
                                            end_date,
                                            group_by=group_by,
@@ -187,7 +187,7 @@ class TestPrediction10m(unittest.TestCase):
 
         server_id = "ecotype-40"
 
-        x_valid, y_valid, tss_valid, data_valid, scaler, shape, servers_names_raw = \
+        x_valid, y_valid, tss_valid, data_valid, scaler, shape, servers_names_raw, metadata = \
             generate_real_consumption_data(validation_start_date,
                                            validation_end_date,
                                            data_file_path=f"{DATA_TEST_FOLDER}/data_validation_10m.json",
@@ -242,7 +242,7 @@ class TestPrediction10m(unittest.TestCase):
         ]
 
         # Train the neural network
-        x, y, tss, data, scaler, shape, servers_names_raw = \
+        x, y, tss, data, scaler, shape, servers_names_raw, metadata = \
             generate_real_consumption_data(start_date,
                                            end_date,
                                            group_by=group_by,
@@ -276,7 +276,7 @@ class TestPrediction10m(unittest.TestCase):
 
         server_id = "ecotype-40"
 
-        x_valid, y_valid, tss_valid, data_valid, scaler, shape, servers_names_raw = \
+        x_valid, y_valid, tss_valid, data_valid, scaler, shape, servers_names_raw, metadata = \
             generate_real_consumption_data(validation_start_date,
                                            validation_end_date,
                                            data_file_path=f"{DATA_TEST_FOLDER}/data_validation_10m.json",

@@ -8,6 +8,69 @@ import time
 from sklearn.preprocessing import MinMaxScaler
 
 
+def get_neighbours(index):
+    return 42
+
+
+def get_additional_variables(server_id):
+
+    cluster, server_num_str = server_id.split("-")
+    server_num = int(server_num_str)
+
+    return [
+        {
+            "name": f"ecotype_{ server_num }_past_cons_n",
+            "server_consumption": f"ecotype-{ server_num }",
+            "shift": False,
+            "rescale": lambda x: x
+        },
+        {
+            "name": f"ecotype_{ server_num }_past_temp_n",
+            "server_temperature": f"ecotype-{ server_num }",
+            "shift": False,
+            "rescale": lambda x: x,
+            "output": True
+        },
+        # Temperature
+        {
+            "name": f"ecotype_{ server_num }_past_temp_n-1",
+            "server_temperature": f"ecotype-{ server_num }",
+            "shift": True,
+            "shift_count": 1,
+            "rescale": lambda x: x
+        },
+        {
+            "name": f"ecotype_{ server_num }_past_temp_n-2",
+            "server_temperature": f"ecotype-{ server_num }",
+            "shift": True,
+            "shift_count": 2,
+            "rescale": lambda x: x
+        },
+        # Consumption
+        {
+            "name": f"ecotype_{ server_num }_past_cons_n-1",
+            "server_consumption": f"ecotype-{ server_num }",
+            "shift": True,
+            "shift_count": 1,
+        },
+        {
+            "name": f"ecotype_{ server_num }_past_cons_n-2",
+            "server_consumption": f"ecotype-{ server_num }",
+            "shift": True,
+            "shift_count": 2,
+        },
+    ]
+
+
+def get_additional_variables_multiple_servers(server_ids):
+    result = []
+
+    for server_id in server_ids:
+        result += get_additional_variables(server_id)
+
+    return result
+
+
 def generate_real_consumption_data(start_date=None,
                                    end_date=None,
                                    show_progress=True,
@@ -15,13 +78,11 @@ def generate_real_consumption_data(start_date=None,
                                    group_by=60,
                                    scaler=None,
                                    use_scaler=True,
-                                   additional_variables=None):
+                                   server_id=None,
+                                   server_ids=None):
 
     if data_file_path is None:
         data_file_path = "data/data_60m.json"
-
-    if additional_variables is None:
-        additional_variables = []
 
     seduce_infrastructure_tree = requests.get("https://api.seduce.fr/infrastructure/description/tree").json()
 
@@ -29,7 +90,15 @@ def generate_real_consumption_data(start_date=None,
     servers_names_raw = sorted(servers_names_raw, key=lambda s: int(s.split("-")[1]))
 
     # selected_servers_names_raw = [f"ecotype-{i}" for i in range(37, 49)]
-    selected_servers_names_raw = [f"ecotype-{i}" for i in range(40, 41)]
+    if server_id is not None and server_ids is None:
+        selected_servers_names_raw = [server_id]
+    elif server_id is None and server_ids is not None:
+        selected_servers_names_raw = server_ids
+    else:
+        raise Exception("Could not figure which server to use")
+
+    variables = get_additional_variables_multiple_servers(selected_servers_names_raw)
+
     selected_servers_names_raw = sorted(selected_servers_names_raw, key=lambda s: int(s.split("-")[1]))
 
     servers_names = seq(servers_names_raw)
@@ -166,28 +235,28 @@ def generate_real_consumption_data(start_date=None,
         with open(data_file_path, "r") as data_file:
             data = json.load(data_file)
 
-    for additional_var in additional_variables:
-        if "sensor" in additional_var:
-            additional_var_dict = data.get("sensors_data")[additional_var.get("sensor")]
+    for var in variables:
+        if "sensor" in var:
+            additional_var_dict = data.get("sensors_data")[var.get("sensor")]
             variables_values = [b
                                 for (a, b) in zip(additional_var_dict["timestamps"],
                                                   additional_var_dict["means"])
                                 if a not in data.get("filter_timestamps")]
-        elif "server_consumption" in additional_var:
-            additional_var_dict = data.get("consumptions")[additional_var.get("server_consumption")]
+        elif "server_consumption" in var:
+            additional_var_dict = data.get("consumptions")[var.get("server_consumption")]
             variables_values = [b
                                 for (a, b) in zip(additional_var_dict["timestamps"],
                                                   additional_var_dict["means"])
                                 if a not in data.get("filter_timestamps")]
-        elif "server_temperature" in additional_var:
-            additional_var_dict = data.get("consumptions")[additional_var.get("server_temperature")]
+        elif "server_temperature" in var:
+            additional_var_dict = data.get("consumptions")[var.get("server_temperature")]
             variables_values = [b
                                 for (a, b) in zip(additional_var_dict["timestamps"],
                                                   additional_var_dict["temperatures"])
                                 if a not in data.get("filter_timestamps")]
-        elif "consumption_function" in additional_var:
+        elif "consumption_function" in var:
             all_data = data.get("consumptions")
-            func = additional_var["consumption_function"]
+            func = var["consumption_function"]
 
             consumptions = {}
             for server_name in all_data.keys():
@@ -199,17 +268,17 @@ def generate_real_consumption_data(start_date=None,
 
             variables_values = [func(i) for i in zip(*consumptions.values())]
         else:
-            raise Exception(f"Could not understand how to compute the additional variable {additional_var.get('name', str(additional_var))}")
+            raise Exception(f"Could not understand how to compute the additional variable {var.get('name', str(var))}")
 
-        if not additional_var.get("shift", False):
-            data[additional_var.get("name")] = variables_values
+        if not var.get("shift", False):
+            data[var.get("name")] = variables_values
         else:
-            shift_count = additional_var.get("shift_count", 1)
+            shift_count = var.get("shift_count", 1)
             new_values = [variables_values[shift_count-1] for x in range(0, shift_count)] + variables_values[0:-shift_count]
-            data[additional_var.get("name")] = new_values
+            data[var.get("name")] = new_values
 
-        if "rescale" in additional_var:
-            data[additional_var.get("name")] = [additional_var.get("rescale")(x) for x in data[additional_var.get("name")]]
+        if "rescale" in var:
+            data[var.get("name")] = [var.get("rescale")(x) for x in data[var.get("name")]]
 
     x = None
     y = None
@@ -222,38 +291,32 @@ def generate_real_consumption_data(start_date=None,
                 raise Exception(f"Timestamps of server {server_name} don't match timestamps of other servers")
         timestamps_labels = data["consumptions"][server_name]["timestamps"]
 
-    for selected_server in selected_servers_names:
+    metadata = {
+        "input": [],
+        "output": [],
+    }
 
-        if timestamps_labels is not None:
-            if data["consumptions"][selected_server]["timestamps"] != timestamps_labels:
-                print("plop")
+    for var in variables:
 
-        timestamps_labels = data["consumptions"][selected_server]["timestamps"]
-        consumption_values = data["consumptions"][selected_server]["means"]
-        temperature_values = data["consumptions"][selected_server]["temperatures"]
-
-        z = np.array(seq(consumption_values).map(lambda x: x if x is not None else 0).to_list()).reshape(len(timestamps_labels), 1)
-        # Add values of the additional variable to the 'x' array
-        if x is None:
-            x = z
-        else:
-            x = np.append(x, z, axis=1)
-        z = np.array(seq(temperature_values).map(lambda x: x if x is not None else 0).to_list()).reshape(len(timestamps_labels), 1)
-        # Add values of the additional variable to the 'x' array
-        if y is None:
-            y = z
-        else:
-            y = np.append(y, z, axis=1)
-
-    for additional_var in additional_variables:
-
-        if additional_var.get("exclude_from_training_data", False):
+        if var.get("exclude_from_training_data", False):
             continue
 
-        temperatures = data[additional_var.get("name")]
-        z = np.array(seq(temperatures).map(lambda x: x if x is not None else 0).to_list()).reshape(len(x), 1)
+        temperatures = data[var.get("name")]
+        z = np.array(seq(temperatures).map(lambda x: x if x is not None else 0).to_list()).reshape(len(timestamps_labels), 1)
         # Add values of the additional variable to the 'x' array
-        x = np.append(x, z, axis=1)
+
+        if not var.get("output", False):
+            if x is None:
+                x = z
+            else:
+                x = np.append(x, z, axis=1)
+            metadata["input"] += [var.get("name")]
+        else:
+            if y is None:
+                y = z
+            else:
+                y = np.append(y, z, axis=1)
+            metadata["output"] += [var.get("name")]
 
     input_columns_count = x.shape[1]
     output_columns_count = y.shape[1]
@@ -271,6 +334,6 @@ def generate_real_consumption_data(start_date=None,
 
         scaled_x, scaled_y = scaled_values[:, :input_columns_count], scaled_values[:, -output_columns_count:]
 
-        return scaled_x, scaled_y, timestamps_labels, data, scaler, shape, selected_servers_names_raw
+        return scaled_x, scaled_y, timestamps_labels, data, scaler, shape, selected_servers_names_raw, metadata
     else:
-        return x, y, timestamps_labels, data, None, shape, selected_servers_names_raw
+        return x, y, timestamps_labels, data, None, shape, selected_servers_names_raw, metadata
