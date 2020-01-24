@@ -13,6 +13,6 @@ setup(name='seduce_ml',
       author_email='seducecloud@gmail.com',
       url='https://github.com/SeduceProject/seduce_ml',
       package_dir={'': '.'},  # Optional
-      packages=["seduce_ml"],  # Required
+      packages=["seduce_ml"] + ["seduce_ml/"+p for p in find_packages(where="seduce_ml")],  # Required
       install_requires=requirements,
       )
