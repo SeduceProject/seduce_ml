@@ -2,9 +2,9 @@ venv
 project
 data.json
 data_validation.json
-data/*.h5
-data/scaler*
-data/
+/data/*.h5
+/data/scaler*
+/data/
 test/data
 test/tmp
 tmp
