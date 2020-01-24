@@ -1,22 +1,38 @@
-from keras.models import load_model
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.externals import joblib
 import datetime as dt
+from lib.learning.ltsm import hstack, split_sequences
 from lib.data.seduce_data_loader import get_additional_variables
 
 
-def validate_seduce_ml(x, y, tss, server_id, learning_method, servers_names_raw, use_scaler, oracle_path=None, oracle=None, scaler=None, scaler_path=None, tmp_figures_folder=None, figure_label=""):
+def validate_seduce_ml(consumption_data, server_id, use_scaler, scaler_path=None, tmp_figures_folder=None, figure_label="", oracle_object=None):
 
-    server_idx = servers_names_raw.index(server_id)
+    if oracle_object is None:
+        raise Exception("Please provide an oracle object")
 
-    if oracle is None:
-        if oracle_path is None:
-            raise Exception("Please provide one of those arguments: ['oracle', 'oracle_path']")
-        if learning_method == "neural":
-            oracle = load_model(oracle_path)
-        else:
-            oracle = joblib.load(oracle_path)
+    x = consumption_data.get("x")
+    y = consumption_data.get("y")
+    unscaled_x = consumption_data.get("unscaled_x")
+    unscaled_y = consumption_data.get("unscaled_y")
+    tss = consumption_data.get("tss")
+
+    oracle = oracle_object.oracle
+    scaler = oracle_object.scaler
+    metadata = oracle_object.metadata
+
+    [server_idx] = [idx for idx, e in enumerate(metadata.get("output_variables")) if e.get("output_of", None) == server_id]
+
+    if oracle_object.learning_method == "ltsm":
+        _, n_steps, n_features = oracle.input_shape
+        data_size, _ = x.shape
+
+        x = x.reshape(data_size, n_features)
+        y = y.reshape(data_size, 1)
+
+        dataset = hstack((x, y))
+
+        x, y = split_sequences(dataset, n_steps)
 
     if scaler is None:
         if scaler_path is None:
@@ -29,39 +45,19 @@ def validate_seduce_ml(x, y, tss, server_id, learning_method, servers_names_raw,
     plot_data = []
 
     for idx, _ in enumerate(y):
-        test_input = np.array([x[idx]])
+        server_power_consumption = np.array(unscaled_x[idx])
         expected_value = y[idx]
+        expected_temp = unscaled_y[idx]
 
-        if learning_method == "gaussian":
-            result, sigma = oracle.predict(test_input)
-        else:
-            result = oracle.predict(test_input)
-
-        if use_scaler:
-            unscaled_expected_values = scaler.inverse_transform(np.array([np.append(np.copy(test_input), expected_value)]))
-            unscaled_predicted_values = scaler.inverse_transform(np.array([np.append(np.copy(test_input), result)]))
-
-            expected_temp = unscaled_expected_values[:, -len(expected_value):][0]
-            predicted_temp = unscaled_predicted_values[:, -len(expected_value):][0]
-
-            server_power_consumption = unscaled_predicted_values[0][server_idx]
-        else:
-            expected_temp = expected_value
-            predicted_temp = result
-
-            server_power_consumption = result[server_idx]
+        predicted_temp = oracle_object.predict(server_power_consumption)
+        raw_result = rescale_output(predicted_temp, scaler, metadata.get("variables"))
 
         mse = ((predicted_temp - expected_temp) ** 2)
-
-        # temp_room = -1
-        # if len(data.get("room_temperature")) > idx:
-        #     temp_room = data.get("room_temperature")[idx]
 
         plot_data += [{
             "x": idx,
             "y_actual": expected_value,
-            "y_pred": result,
-            # "temp_room": temp_room,
+            "y_pred": raw_result,
             "mse_mean": mse.mean(axis=0),
             "mse_raw": mse,
             "rmse_mean": np.sqrt(mse).mean(axis=0),
@@ -84,12 +80,7 @@ def validate_seduce_ml(x, y, tss, server_id, learning_method, servers_names_raw,
         ax = plt.axes()
 
         y1_data = [d["temp_actual"][server_idx] for d in sorted_plot_data]
-        y2_data = [d["temp_pred"][server_idx] for d in sorted_plot_data]
-
-        # dts = [dt.datetime(int(y[0]), int(y[1]), int(y[2]), int(y[3]))
-        #        for y in [x.split("-")
-        #                  for x in [ts.replace("T", "-").split(":")[0]
-        #                            for ts in tss]]]
+        y2_data = [d["temp_pred"][0][server_idx] for d in sorted_plot_data]
 
         dts = [dt.datetime(*[int(x)
                              for x in [a.split("-") + b.split(":")
@@ -97,6 +88,9 @@ def validate_seduce_ml(x, y, tss, server_id, learning_method, servers_names_raw,
                for ts in tss]
 
         sorted_dts = sorted(dts)
+
+        if oracle_object.learning_method == "ltsm":
+            sorted_dts = sorted_dts[-len(y1_data):]
 
         ax.plot(sorted_dts, y1_data, color='blue', label='actual temp.', linewidth=0.5)
         ax.plot(sorted_dts, y2_data, color='red', label='predicted temp.', alpha=0.5, linewidth=0.5)
@@ -125,150 +119,338 @@ def validate_seduce_ml(x, y, tss, server_id, learning_method, servers_names_raw,
     return rmse, rmse_perc
 
 
-def unscale_input(x, scaler):
-    scaler_columns_count = scaler.scale_.shape[0]
-    input_columns_count = x.shape[1]
-    temp_array = np.append(x, np.zeros((scaler_columns_count - input_columns_count)))
-    return scaler.inverse_transform(np.array([temp_array]))[:, :input_columns_count]
+def unscale_input(x, scaler, variables):
+    """Unscales an input 2D array"""
+
+    if len(x.shape) != 2:
+        raise Exception("Expecting an 2D array")
+
+    row_count, columns_count = x.shape
+    additional_columns_count = len(variables) - columns_count
+
+    augmented_array = np.insert(x, [columns_count] * additional_columns_count, -10, axis=1)
+
+    unscaled_augmented_array = scaler.inverse_transform(augmented_array)
+
+    return unscaled_augmented_array[:, :columns_count]
 
 
-def rescale_input(x, scaler):
-    scaler_columns_count = scaler.scale_.shape[0]
-    input_columns_count = x.shape[1]
-    temp_array = np.append(x, np.zeros((scaler_columns_count - input_columns_count)))
-    return scaler.transform(np.array([temp_array]))[:, :input_columns_count]
+def rescale_input(x, scaler, variables):
+    """Rescales an input 2D array"""
+
+    if len(x.shape) != 2:
+        raise Exception("Expecting an 2D array")
+
+    row_count, columns_count = x.shape
+    additional_columns_count = len(variables) - columns_count
+
+    augmented_array = np.insert(x, [columns_count] * additional_columns_count, -10, axis=1)
+
+    unscaled_augmented_array = scaler.transform(augmented_array)
+
+    return unscaled_augmented_array[:, :columns_count]
 
 
-def unscale_output(y, scaler):
-    scaler_columns_count = scaler.scale_.shape[0]
-    output_columns_count = y.shape[0]
-    temp_array = np.append(np.zeros((scaler_columns_count - output_columns_count)), y)
-    return scaler.inverse_transform(np.array([temp_array]))[:, -output_columns_count:]
+def unscale_output(y, scaler, variables):
+    """Unscales an output 2D array"""
+
+    if len(y.shape) != 2:
+        raise Exception("Expecting an 2D array")
+
+    row_count, columns_count = y.shape
+    additional_columns_count = len(variables) - columns_count
+
+    augmented_array = np.insert(y, [0] * additional_columns_count, -10, axis=1)
+
+    unscaled_augmented_array = scaler.inverse_transform(augmented_array)
+
+    return unscaled_augmented_array[:, -columns_count:]
 
 
-def rescale_output(y, scaler):
-    scaler_columns_count = scaler.scale_.shape[0]
-    output_columns_count = y.shape[0]
-    temp_array = np.append(np.zeros((scaler_columns_count - output_columns_count)), y)
-    return scaler.inverse_transform(np.array([temp_array]))[:, -output_columns_count:]
+def rescale_output(y, scaler, variables):
+    """Rescales an output 2D array"""
+
+    if len(y.shape) != 2:
+        raise Exception("Expecting an 2D array")
+
+    row_count, columns_count = y.shape
+    additional_columns_count = len(variables) - columns_count
+
+    augmented_array = np.insert(y, [0] * additional_columns_count, -10, axis=1)
+
+    unscaled_augmented_array = scaler.transform(augmented_array)
+
+    return unscaled_augmented_array[:, -columns_count:]
 
 
-def shift_data(x, additional_variables, scaler, predicted_temp_reusing_past_pred):
-    unscaled_x = unscale_input(x, scaler)
-
-    unscaled_x_old = unscaled_x.copy()
-
-    shifted_old_temp_values_map = {}
-
-    # Extract value in order to easily shift them (n-1 => n-2; n-2 => n-3; ...)
-    for idx, e in enumerate(additional_variables, start=x.shape[1] - len(additional_variables)):
-        if all([pattern in e.get("name") for pattern in ["temp", "past_temp", "n-"]]):
-            hostname, time_step_str = e.get("name").split("_past_temp_n-")
-            time_step = int(time_step_str)
-            shifted_old_temp_values_map[f"{hostname}_{time_step}"] = unscaled_x_old[-1, idx]
-
-    for idx, e in enumerate(additional_variables, start=x.shape[1] - len(additional_variables)):
-        # Reuse the past prediction
-        if all([pattern in e.get("name") for pattern in ["temp", "past_temp", "n-"]]):
-            hostname, time_step_str = e.get("name").split("_past_temp_n-")
-            time_step = int(time_step_str)
-
-            if time_step == 1:
-                unscaled_x[-1, idx] = predicted_temp_reusing_past_pred
-            else:
-                unscaled_x[-1, idx] = shifted_old_temp_values_map[f"{hostname}_{time_step-1}"]
-
-    # print(f"{unscaled_x_old} vs {unscaled_x}")
-
-    rescaled_x = rescale_input(unscaled_x, scaler)
-
-    return rescaled_x
+def get_type_var(var):
+    if "server_consumption" in var:
+        return "consumption"
+    if "server_temperature" in var:
+        return "temperature"
+    return "unknown"
 
 
-def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_names_raw, use_scaler, oracle_path=None, oracle=None, scaler=None, scaler_path=None, tmp_figures_folder=None, figure_label="", produce_figure=True):
+def get_server_var(var):
+    if "server_consumption" in var:
+        return var.get("server_consumption")
+    if "server_temperature" in var:
+        return var.get("server_temperature")
+    return "unknown"
 
-    additional_variable = get_additional_variables(server_id)
 
-    server_idx = servers_names_raw.index(server_id)
+def enrich_variables(vars):
+    result = [
+        dict([(k, v) for k, v in var.items()] +
+             [("type", get_type_var(var))] +
+             [("server", get_server_var(var))] +
+             [("idx", idx)] +
+             [("shift_count", var.get("shift_count", 0))])
+        for (idx, var) in enumerate(vars)
+        if not var.get("output", False)
+    ]
 
-    if oracle is None:
-        if oracle_path is None:
-            raise Exception("Please provide one of those arguments: ['oracle', 'oracle_path']")
-        if learning_method == "neural":
-            oracle = load_model(oracle_path)
+    return result
+
+
+def extract_substitutions(variables):
+    """" Extract the substitution of variables that should be made between "row n" => "row n-1"
+    """
+
+    result = {}
+
+    additional_variables_with_types = enrich_variables(variables)
+
+    for var in additional_variables_with_types:
+        similar_variables = [var2
+                             for var2 in additional_variables_with_types
+                             if var.get("type") == var2.get("type")
+                             and var.get("server") == var2.get("server")
+                             and var.get("shift_count") == var2.get("shift_count") -1]
+
+        if len(similar_variables) > 0:
+            similar_variable = similar_variables[-1]
+            result[similar_variable.get("name")] = var.get("name")
+
+    return result
+
+
+def collect_substitutions_values(row, variables, substitutions):
+    """" Collects the values of substitions from the given row
+    """
+
+    result = {}
+
+    additional_variables_with_types = enrich_variables(variables)
+
+    for substitued_variable_name, substituing_variable_name in substitutions.items():
+        substituing_variables = [var
+                             for var in additional_variables_with_types
+                             if substituing_variable_name == var.get("name")]
+
+        if len(substituing_variables) > 0:
+            substituing_variable = substituing_variables[-1]
+            substituing_value = row[substituing_variable["idx"]]
+            result[substitued_variable_name] = substituing_value
+
+    return result
+
+
+def replace_row_variables(row, variables, new_values):
+    """" Replace given variables in the specified row
+    """
+
+    if len(row.shape) > 1:
+        raise Exception("row should be an 1D array")
+
+    result = row.copy()
+
+    input_variables = [var for var in variables if not var.get("output", False)]
+
+    for column_idx, value in enumerate(row):
+        column_var_name = input_variables[column_idx]["name"]
+        if column_var_name in new_values:
+            [new_column_value] = [value for (var_name, value) in new_values.items() if var_name == column_var_name]
+            result[column_idx] = new_column_value
+
+    return result
+
+
+def shift_data_ltsm_non_scaled(x, variables, initial_substitutions, skip_types=[]):
+    """
+    """
+
+    if len(x.shape) != 2:
+        raise Exception("Expect the given 'x' array to be a 2D array")
+
+    new_rows = []
+
+    substitutions = extract_substitutions(variables)
+
+    variables_with_metadata = enrich_variables(variables)
+    input_variables = [var for var in variables_with_metadata if not var.get("output", False)]
+
+    for idx, row in enumerate(x):
+        # corresponding_input_var = input_variables[idx]
+        #
+        # if corresponding_input_var["type"] in skip_types:
+        #     continue
+        #
+        # if idx == 0:
+        #     substituing_values = collect_substitutions_values(row, variables, substitutions)
+        #     new_row = replace_row_variables(row, variables, substituing_values)
+        #     new_row = replace_row_variables(new_row, variables, initial_substitutions)
+        #
+        #     new_rows += [new_row]
+
+        new_row = row.copy()
+
+        new_rows += [new_row]
+
+    return np.array(new_rows[:-1])
+
+
+def shift_data_ltsm(x, variables, scaler, initial_substitution, skip_types=[]):
+    unscaled_input = unscale_input(x, scaler, variables)
+
+    unscaled_result = shift_data_ltsm_non_scaled(unscaled_input, variables, initial_substitution, skip_types=skip_types)
+
+    return rescale_input(unscaled_result, scaler, variables)
+
+
+def shift_data_non_scaled(x, variables, initial_substitutions, skip_types=[]):
+    """
+    """
+
+    if len(x.shape) != 2:
+        raise Exception("Expect the given 'x' array to be a 2D array")
+
+    new_rows = []
+
+    substitutions = extract_substitutions(variables)
+
+    variables_with_types = enrich_variables(variables)
+    input_variables = [var for var in variables_with_types if not var.get("output", False)]
+
+    for idx, row in enumerate(x):
+
+        corresponding_input_var = input_variables[idx]
+
+        if corresponding_input_var["type"] in skip_types:
+            substituing_values = collect_substitutions_values(row, variables, substitutions)
+            new_row = replace_row_variables(row, variables, substituing_values)
         else:
-            oracle = joblib.load(oracle_path)
+            new_row = row
+        new_row2 = replace_row_variables(new_row, variables, initial_substitutions)
 
-    if scaler is None:
-        if scaler_path is None:
-            raise Exception("Please provide one of those arguments: ['scaler', 'scaler_path']")
-        scaler = joblib.load(scaler_path)
+        new_rows += [new_row2]
+
+    return np.array(new_rows)
+
+
+def shift_data(x, variables, scaler, initial_substitutions, skip_types=[]):
+    unscaled_input = unscale_input(x, scaler, variables)
+
+    unscaled_result = shift_data_non_scaled(unscaled_input, variables, initial_substitutions, skip_types=skip_types)
+
+    return rescale_input(unscaled_result, scaler, variables)
+
+
+def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=None, figure_label="", produce_figure=True, oracle_object=None):
+
+    if oracle_object is None:
+        raise Exception("Please provide an oracle_object")
+
+    oracle = oracle_object.oracle
+    scaler = oracle_object.scaler
+    metadata = oracle_object.metadata
+
+    x = consumption_data.get("x")
+    y = consumption_data.get("y")
+    unscaled_x = consumption_data.get("unscaled_x")
+    unscaled_y = consumption_data.get("unscaled_y")
+    tss = consumption_data.get("tss")
+
+    additional_variable = get_additional_variables(server_id, oracle_object.learning_method)
+    expected_input_columns_count = len([var for var in additional_variable if var.get("input", False)])
+    expected_output_columns_count = len([var for var in additional_variable if var.get("output", False)])
+
+    # server_idx = servers_names_raw.index(server_id)
+    [server_idx] = [idx for idx, e in enumerate(metadata.get("output_variables")) if e.get("output_of", None) == server_id]
+
+    if oracle_object.learning_method == "ltsm":
+        _, n_steps, n_features = oracle.input_shape
+        data_size, _ = x.shape
+
+        x = x.reshape(data_size, n_features)
+        y = y.reshape(data_size, 1)
+
+        dataset = hstack((x, y))
+
+        x, y = split_sequences(dataset, n_steps)
 
     start_step = 0
     end_step = len(y)
 
     plot_data = []
 
-    test_input_reusing_past_pred = None
-    time_periods_without_real_temp = 10
+    time_periods_without_real_temp = 4
 
-    resync = True
-    resync_count = 0
-    expected_temp = None
+    resync_counter = 0
+    current_cycle_counter = 0
+    variables_that_travels = [var for var in metadata.get("variables") if var.get("become") is not None]
 
     for (idx, (e, ts)) in enumerate(zip(y, tss)):
+
+        servers_consumptions = unscaled_x[idx]
+        expected_temp = unscaled_y[idx]
+        expected_value = y[idx]
 
         ts_to_date = dt.datetime(*[int(x)
                                    for x in [a.split("-") + b.split(":")
                                              for (a, b) in [ts.replace("Z", "").split("T")]][0]])
 
-        # if idx < 0:
-        #     continue
-        #
-        # if idx > 800:
-        #     break
+        predicted_temp = oracle_object.predict(servers_consumptions)
 
         if idx > 0 and (idx % time_periods_without_real_temp) != 0:
             resync = False
         else:
             resync = True
 
-        test_input = np.array([x[idx]])
-        if test_input_reusing_past_pred is None:
-            test_input_reusing_past_pred = test_input
+        if resync:
+            resync_counter += 1
 
-        expected_value = y[idx]
+        current_cycle_counter = 0 if resync else current_cycle_counter + 1
 
-        if learning_method == "gaussian":
-            result, sigma = oracle.predict(test_input)
-        else:
-            result = oracle.predict(test_input)
+        if current_cycle_counter == 0:
+            diff_y = np.zeros(len(metadata.get("output")))
+            diff_z = np.zeros(len(metadata.get("output")))
 
-        test_input_copy = test_input.copy()
+        servers_consumptions_copy = servers_consumptions.copy()
+        if not resync and resync_counter > 0:
+            # Reuse previous variables
+            _y = result_reusing_past_pred + diff_y + diff_z
+            for var in variables_that_travels:
+                substituting_output_var_idx = metadata.get("output").index(var.get("name"))
+                substituting_input_var_idx = metadata.get("input").index(var.get("become"))
+                servers_consumptions_copy[substituting_input_var_idx] = _y[0, substituting_output_var_idx]
 
-        if not resync:
-            test_input_copy = shift_data(test_input_copy, additional_variable, scaler, predicted_temp_reusing_past_pred)
-        else:
-            if expected_temp is not None:
-                test_input_copy = shift_data(test_input_copy, additional_variable, scaler, expected_temp)
-
-        if learning_method == "gaussian":
-            result_reusing_past_pred, sigma_reusing_past_pred = oracle.predict(test_input_copy)
-        else:
-            result_reusing_past_pred = oracle.predict(test_input_copy)
-
-        if type(result) == list:
-            result = result[0]
-        if type(result_reusing_past_pred) == list:
-            result_reusing_past_pred = result_reusing_past_pred[0]
-
-        expected_temp = unscale_output(expected_value, scaler)[0]
-        predicted_temp = unscale_output(result, scaler)[0]
-
-        if not resync:
-            predicted_temp_reusing_past_pred = unscale_output(result_reusing_past_pred, scaler)[0]
+            predicted_temp_reusing_past_pred = oracle_object.predict(servers_consumptions_copy)
         else:
             predicted_temp_reusing_past_pred = predicted_temp
+
+        if current_cycle_counter == 0:
+            raw_prediction = oracle_object.predict(servers_consumptions)
+            diff_y = predicted_temp_reusing_past_pred - raw_prediction  # CORRECT
+            diff_z = expected_temp - raw_prediction
+            # diff_z = np.clip(diff_z, a_min=-1, a_max=1)
+
+            print(f"{resync_counter} => mean: {np.mean(diff_z)} and {np.mean(diff_y)}")
+
+        # if result_reusing_past_pred is not None:
+        #     print(f"{predicted_temp_reusing_past_pred - result_reusing_past_pred}")
+
+        result_reusing_past_pred = predicted_temp_reusing_past_pred
 
         mse = ((predicted_temp_reusing_past_pred - expected_temp) ** 2)
 
@@ -276,7 +458,6 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
             "x": idx,
             "y_actual": expected_value,
             "y_pred": result_reusing_past_pred,
-            # "temp_room": temp_room,
             "mse_mean": mse.mean(axis=0),
             "mse_raw": mse,
             "rmse_mean": np.sqrt(mse).mean(axis=0),
@@ -284,11 +465,9 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
             "temp_actual": expected_temp,
             "temp_pred": predicted_temp,
             "temp_pred_reusing_past_pred": predicted_temp_reusing_past_pred,
-            # "temp_pred_reusing_past_pred2": predicted_temp_reusing_past_pred2,
             "resync": resync,
             "ts_to_date": ts_to_date
         }]
-
 
     # RMSE
     flatten_rmse = np.array([d["rmse_raw"] for d in plot_data]).flatten()
@@ -303,12 +482,12 @@ def evaluate_prediction_power(x, y, tss, server_id, learning_method, servers_nam
         ax = plt.axes()
 
         y1_data = [d["temp_actual"][server_idx] for d in sorted_plot_data]
-        y2_data = [d["temp_pred"][server_idx] for d in sorted_plot_data]
-        y3_data = [d["temp_pred_reusing_past_pred"][server_idx] for d in sorted_plot_data]
+        y2_data = [d["temp_pred"][0][server_idx] for d in sorted_plot_data]
+        y3_data = [d["temp_pred_reusing_past_pred"][0][server_idx] for d in sorted_plot_data]
         # y5_data = [d["temp_pred_reusing_past_pred2"][server_idx] for d in sorted_plot_data]
 
         synced_sorted_dts = [d["ts_to_date"] for d in sorted_plot_data if d["resync"]]
-        y4_data = [d["temp_pred_reusing_past_pred"][server_idx] for d in sorted_plot_data if d["resync"]]
+        y4_data = [d["temp_pred_reusing_past_pred"][0][server_idx] for d in sorted_plot_data if d["resync"]]
 
         dts = [d["ts_to_date"] for d in sorted_plot_data]
 

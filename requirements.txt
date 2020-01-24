@@ -11,3 +11,5 @@ texttable
 sklearn
 arrow
 pandas
+matplotlib
+dill

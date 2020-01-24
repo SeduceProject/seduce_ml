@@ -31,8 +31,16 @@ def build_oracle(nb_inputs, nb_outputs, hidden_layers_count=1, neurons_per_hidde
 
 
 def train_oracle(oracle, data, epochs, batch_size):
+    # oracle.fit(data.get("x"),
+               # data.get("y"),
+               # epochs=epochs,
+               # batch_size=batch_size)
 
+    from keras.callbacks import EarlyStopping
+    overfitCallback = EarlyStopping(monitor='loss', min_delta=0.0000, patience=20)
     oracle.fit(data.get("x"),
                data.get("y"),
-               epochs=epochs,
+               epochs=100000000,
+               # epochs=10,
+               callbacks=[overfitCallback],
                batch_size=batch_size)
