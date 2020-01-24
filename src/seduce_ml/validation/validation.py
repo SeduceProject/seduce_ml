@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.externals import joblib
 import datetime as dt
-from src.learning.ltsm import hstack, split_sequences
-from src.data.seduce_data_loader import get_additional_variables
+from src.seduce_ml.learning.ltsm import hstack, split_sequences
+from src.seduce_ml.data.seduce_data_loader import get_additional_variables
 
 
 def validate_seduce_ml(consumption_data, server_id, use_scaler, scaler_path=None, tmp_figures_folder=None, figure_label="", oracle_object=None):

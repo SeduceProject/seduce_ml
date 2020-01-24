@@ -1,7 +1,4 @@
-from sklearn.gaussian_process.kernels import RBF
-from sklearn.gaussian_process import GaussianProcessRegressor
-from src.validation.validation import rescale_input, unscale_input, rescale_output, unscale_output
-from src.data.seduce_data_loader import get_additional_variables
+from src.seduce_ml.data.seduce_data_loader import get_additional_variables
 import numpy
 
 NB_NEIGHBOURS = 10

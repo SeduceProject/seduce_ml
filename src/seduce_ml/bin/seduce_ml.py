@@ -1,16 +1,16 @@
 import sys
 import uuid
 import matplotlib.pyplot as plt
-from src.data.seduce_data_loader import generate_real_consumption_data
+from src.seduce_ml.data.seduce_data_loader import generate_real_consumption_data
 import os
 from texttable import Texttable
 from sklearn.externals import joblib
-from src.validation.validation import validate_seduce_ml, evaluate_prediction_power
-from src.oracle.oracle import create_and_train_oracle
+from src.seduce_ml.validation.validation import validate_seduce_ml, evaluate_prediction_power
+from src.seduce_ml.oracle.oracle import create_and_train_oracle
 from sklearn.model_selection import train_test_split
 import time
 import numpy as np
-from src.data.correlation import investigate_correlations
+from src.seduce_ml.data.correlation import investigate_correlations
 
 
 def train(epoch_count,

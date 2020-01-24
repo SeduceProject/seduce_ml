@@ -1,14 +1,14 @@
-from src.learning.oracle import build_oracle as build_oracle_neural
-from src.learning.oracle import train_oracle as train_oracle_neural
-from src.learning.ltsm import build_oracle as build_oracle_ltsm
-from src.learning.ltsm import train_oracle as train_oracle_ltsm
+from src.seduce_ml.learning.oracle import build_oracle as build_oracle_neural
+from src.seduce_ml.learning.oracle import train_oracle as train_oracle_neural
+from src.seduce_ml.learning.ltsm import build_oracle as build_oracle_ltsm
+from src.seduce_ml.learning.ltsm import train_oracle as train_oracle_ltsm
 import numpy as np
 from numpy.linalg import norm
 import math
-from src.learning.knearest import KNearestOracle
-from src.learning.gaussian import GaussianProcessOracle
-from src.learning.ltsm import hstack, split_sequences
-from src.validation.validation import rescale_input, rescale_output, unscale_input, unscale_output
+from src.seduce_ml.learning.knearest import KNearestOracle
+from src.seduce_ml.learning.gaussian import GaussianProcessOracle
+from src.seduce_ml.learning.ltsm import hstack, split_sequences
+from src.seduce_ml.validation.validation import rescale_input, rescale_output, unscale_input, unscale_output
 
 
 def create_and_train_oracle(
