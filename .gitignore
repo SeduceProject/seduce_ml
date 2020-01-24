@@ -5,7 +5,8 @@ data_validation.json
 /data/*.h5
 /data/scaler*
 /data/
-test/data
+/test/data
+/tests/data
 test/tmp
 tmp
 .ipynb_checkpoints/
