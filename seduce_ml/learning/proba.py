@@ -1,7 +1,4 @@
-from sklearn.gaussian_process.kernels import RBF
-from sklearn.gaussian_process import GaussianProcessRegressor
-from src.seduce_ml.validation.validation import rescale_input, unscale_input, rescale_output, unscale_output
-from src.seduce_ml.data.seduce_data_loader import get_additional_variables
+from seduce_ml.data.seduce_data_loader import get_additional_variables
 import numpy
 
 NB_NEIGHBOURS = 10
@@ -69,8 +66,7 @@ class GaussianProcessOracle(object):
     def distance(self, x_input_a, x_input_b):
         avg_cons_a = self.average_cons_bottom(x_input_a)
         avg_cons_b = self.average_cons_bottom(x_input_b)
-        return abs(x_input_a[0] - x_input_b[0]) + 0.75 * abs(x_input_a[1] - x_input_b[1]) + 0.1 * abs(
-            x_input_a[1] - x_input_b[1]) + 0.0 * abs(avg_cons_a - avg_cons_b) + 0.9 * abs(x_input_a[6] - x_input_b[6])
+        return abs(x_input_a[0] - x_input_b[0]) + 0.75 * abs(x_input_a[1] - x_input_b[1]) + 0.1 * abs(x_input_a[1] - x_input_b[1]) + 0.0 * abs(avg_cons_a - avg_cons_b) + 0.9 * abs(x_input_a[6] - x_input_b[6])
 
     def predict(self, x_input, idx=None):
         # # Make the prediction on the meshed x-axis (ask for MSE as well)

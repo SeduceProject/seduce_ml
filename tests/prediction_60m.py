@@ -1,5 +1,5 @@
 import unittest
-from src.seduce_ml.data.seduce_data_loader import generate_real_consumption_data
+from seduce_ml.data.seduce_data_loader import generate_real_consumption_data
 from src.oracle.oracle import create_and_train_oracle
 from sklearn.model_selection import train_test_split
 from src.validation.validation import validate_seduce_ml
