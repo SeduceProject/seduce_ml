@@ -1,8 +1,8 @@
 import unittest
-from lib.data.seduce_data_loader import generate_real_consumption_data
-from lib.oracle.oracle import create_and_train_oracle
+from src.data.seduce_data_loader import generate_real_consumption_data
+from src.oracle.oracle import create_and_train_oracle
 from sklearn.model_selection import train_test_split
-from lib.validation.validation import validate_seduce_ml
+from src.validation.validation import validate_seduce_ml
 import os
 from tests import DATA_TEST_FOLDER, FIGURE_TEST_FOLDER
 

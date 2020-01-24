@@ -1,5 +1,5 @@
 import numpy as np
-from lib.data.seduce_data_loader import get_additional_variables
+from src.data.seduce_data_loader import get_additional_variables
 
 NB_NEIGHBOURS = 50
 

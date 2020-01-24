@@ -1,14 +1,14 @@
-from lib.learning.oracle import build_oracle as build_oracle_neural
-from lib.learning.oracle import train_oracle as train_oracle_neural
-from lib.learning.ltsm import build_oracle as build_oracle_ltsm
-from lib.learning.ltsm import train_oracle as train_oracle_ltsm
+from src.learning.oracle import build_oracle as build_oracle_neural
+from src.learning.oracle import train_oracle as train_oracle_neural
+from src.learning.ltsm import build_oracle as build_oracle_ltsm
+from src.learning.ltsm import train_oracle as train_oracle_ltsm
 import numpy as np
 from numpy.linalg import norm
 import math
-from lib.learning.knearest import KNearestOracle
-from lib.learning.gaussian import GaussianProcessOracle
-from lib.learning.ltsm import hstack, split_sequences
-from lib.validation.validation import rescale_input, rescale_output, unscale_input, unscale_output
+from src.learning.knearest import KNearestOracle
+from src.learning.gaussian import GaussianProcessOracle
+from src.learning.ltsm import hstack, split_sequences
+from src.validation.validation import rescale_input, rescale_output, unscale_input, unscale_output
 
 
 def create_and_train_oracle(
