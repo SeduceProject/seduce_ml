@@ -1,29 +1,34 @@
 import numpy as np
-from seduce_ml.data.seduce_data_loader import get_additional_variables
+from seduce_ml.oracle.oracle import Oracle
+from seduce_ml.data.scaling import *
 
-NB_NEIGHBOURS = 50
+NB_NEIGHBOURS = 5
 
 
-class KNearestOracle(object):
+class KNearestOracle(Oracle):
 
-    def __init__(self, x_train, y_train, tss_train):
-        self.x_train = x_train
-        self.y_train = y_train
-        self.tss_train = tss_train
-        self.variables = get_additional_variables("server-42", learning_method="knearest")
-        self.weights = [1.0 / var.get("weight", 1) for var in self.variables if not var.get("output", False)]
+    def __init__(self, scaler, metadata, params):
+        Oracle.__init__(self, scaler, metadata, params)
 
-    def distance(self, x_input):
-        return np.sqrt(np.sum((self.x_train - x_input) ** 2, axis=1))
+    def train(self, data):
+        self.data = data
 
-    def custom_distance(self, x_input):
-        return np.sqrt(np.sum(((self.x_train-x_input) * np.array(self.weights)) ** 2, axis=1))
+    def _distance(self, x_input, x_train):
+        return np.sqrt(np.sum((x_train - x_input) ** 2, axis=1))
 
     def predict(self, x_input):
+
+        rescaled_x_input = rescale_input(x_input.reshape(1, len(self.metadata.get("input"))), self.scaler, self.metadata.get("variables"))
+
+        x_train = self.data.get("x_train")
+        y_train = self.data.get("y_train")
+        tss_train = self.data.get("tss_train")
+
         points_with_distance = [t4 for t4 in
-                                zip(self.distance(x_input), self.x_train, self.y_train, self.tss_train)]
-        close_points = [t4 for t4 in points_with_distance if (np.sqrt((t4[1][0] - x_input[0][0]) ** 2)) < 2]
+                                zip(self._distance(rescaled_x_input, x_train), x_train, y_train, tss_train)]
+        close_points = [t4 for t4 in points_with_distance]
         sorted_points = sorted(close_points, key=lambda t4: t4[0])
         selected_points = [t4[-2] for t4 in sorted_points[0:NB_NEIGHBOURS]]
-        result = np.mean(selected_points, axis=0)
-        return [[result]]
+        result = np.mean(selected_points, axis=0).reshape(1, len(self.metadata.get("output")))
+        unscaled_result = unscale_output(result, self.scaler, self.metadata.get("variables"))
+        return unscaled_result

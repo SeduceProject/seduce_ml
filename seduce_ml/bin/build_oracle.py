@@ -1,12 +1,13 @@
 import sys
 import matplotlib.pyplot as plt
-from seduce_ml.data.seduce_data_loader import generate_real_consumption_data
 import os
-from seduce_ml.validation.validation import validate_seduce_ml, evaluate_prediction_power
-from seduce_ml.oracle.oracle import create_and_train_oracle
-from sklearn.model_selection import train_test_split
 import time
 import numpy as np
+import dill
+from sklearn.model_selection import train_test_split
+from seduce_ml.data.seduce_data_loader import generate_real_consumption_data
+from seduce_ml.validation.validation import validate_seduce_ml, evaluate_prediction_power
+from seduce_ml.oracle.oracle import create_and_train_oracle
 from seduce_ml.data.scaling import *
 
 
@@ -20,9 +21,6 @@ def train(group_by,
           shuffle,
           server_id,
           use_scaler,
-          # nb_layers,
-          # neurons_per_layers,
-          # activation_function,
           params):
     comparison_plot_data = []
 
@@ -394,8 +392,6 @@ if __name__ == "__main__":
             params = {}
 
         oracle_object = train(
-            # epoch_count,
-            # batch_size,
             group_by,
             percentile,
             start_date,
@@ -406,24 +402,13 @@ if __name__ == "__main__":
             shuffle,
             server_id,
             use_scaler,
-            # nb_layers,
-            # neurons_per_layers,
-            # activation_function,
             params
         )
 
-        import pickle
-        import dill
-        from sklearn.externals import joblib
-
         with open('oracle.pickle', 'wb') as oracle_object_file:
-            # joblib.dump(oracle_object, oracle_object_file)
-            # pickle.dump(oracle_object, oracle_object_file)
             dill.dump(oracle_object, oracle_object_file)
 
         with open('oracle.pickle', 'rb') as oracle_object_file:
-            # oracle_object = joblib.load(oracle_object_file)
-            # oracle_object = pickle.load(oracle_object_file)
             oracle_object = dill.load(oracle_object_file)
             prediction = oracle_object.predict(oracle_object.data.get("unscaled_x")[0])
             print(prediction)
