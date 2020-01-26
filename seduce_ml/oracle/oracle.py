@@ -1,29 +1,32 @@
-from seduce_ml.learning.oracle import build_oracle as build_oracle_neural
-from seduce_ml.learning.oracle import train_oracle as train_oracle_neural
-from seduce_ml.learning.ltsm import build_oracle as build_oracle_ltsm
-from seduce_ml.learning.ltsm import train_oracle as train_oracle_ltsm
 import numpy as np
 from numpy.linalg import norm
 import math
-from seduce_ml.learning.knearest import KNearestOracle
-from seduce_ml.learning.gaussian import GaussianProcessOracle
-from seduce_ml.learning.ltsm import hstack, split_sequences
-from seduce_ml.validation.validation import rescale_input, rescale_output, unscale_input, unscale_output
+from seduce_ml.data.scaling import *
 
 
 def create_and_train_oracle(
         consumption_data,
         learning_method,
-        epoch,
-        batch_size,
-        nb_inputs,
-        nb_outputs,
-        nb_layers,
-        neurons_per_layers,
-        activation_function,
+        # epoch,
+        # batch_size,
+        # nb_inputs,
+        # nb_outputs,
+        # nb_layers,
+        # neurons_per_layers,
+        # activation_function,
         params=None,
         percentile=90,
         metadata=None):
+
+    from seduce_ml.learning.neural import build_oracle as build_oracle_neural
+    from seduce_ml.learning.neural import train_oracle as train_oracle_neural
+    from seduce_ml.learning.ltsm import build_oracle as build_oracle_ltsm
+    from seduce_ml.learning.ltsm import train_oracle as train_oracle_ltsm
+    from seduce_ml.learning.knearest import KNearestOracle
+    from seduce_ml.learning.gaussian import GaussianProcessOracle
+    from seduce_ml.learning.ltsm import hstack, split_sequences
+    from seduce_ml.learning.neural import NeuralNetworkOracle
+    # from seduce_ml.validation.validation import rescale_input, rescale_output, unscale_input, unscale_output
 
     if params is None:
         params = {}
@@ -34,8 +37,11 @@ def create_and_train_oracle(
             "output": []
         }
 
+
     x_train = consumption_data.get("x_train")
     y_train = consumption_data.get("y_train")
+    unscaled_x_train = consumption_data.get("unscaled_x_train")
+    unscaled_y_train = consumption_data.get("unscaled_y_train")
     tss_train = consumption_data.get("tss_train")
     x_test = consumption_data.get("x_test")
     y_test = consumption_data.get("y_test")
@@ -48,25 +54,13 @@ def create_and_train_oracle(
     plot_data = []
     score = -1
 
+    # Create an oracle object
+    new_oracle = None
+
     # Build the oracle
     if learning_method == "neural":
-        oracle = build_oracle_neural(nb_inputs=nb_inputs,
-                                     nb_outputs=nb_outputs,
-                                     hidden_layers_count=nb_layers,
-                                     neurons_per_hidden_layer=neurons_per_layers,
-                                     activation_function=activation_function)
-
-        train_oracle_neural(oracle,
-                            {
-                                "x": x_train,
-                                "y": y_train
-                            },
-                            epoch,
-                            len(y_train))
-
-        # Evaluate the neural network
-        score = oracle.evaluate(x_test, y_test, batch_size=batch_size)
-        print(f"score: {score}")
+        new_oracle = NeuralNetworkOracle(scaler, metadata, params)
+        new_oracle.train(consumption_data)
     elif learning_method == "ltsm":
         oracle = build_oracle_ltsm(nb_inputs=nb_inputs,
                                    nb_outputs=nb_outputs,
@@ -108,17 +102,24 @@ def create_and_train_oracle(
     considered_x_set = x_train
     considered_y_set = y_train
 
+    unscaled_considered_x_set = unscaled_x_train
+    unscaled_considered_y_set = unscaled_y_train
+
     sum_squared_difference = 0
     for idx, e in enumerate(considered_y_set):
-        test_input = np.array([considered_x_set[idx]])
-        expected_value = considered_y_set[idx]
+        test_input = np.array([unscaled_considered_x_set[idx]])
+        expected_value = unscaled_considered_y_set[idx]
+        # test_input = np.array([considered_x_set[idx]])
+        # expected_value = considered_y_set[idx]
 
-        if learning_method == "neural":
-            result = oracle.predict(test_input)[0][0]
-        elif learning_method == "gaussian":
-            result, sigma = oracle.predict(test_input, idx)
-        else:
-            result = oracle.predict(test_input)
+        result = new_oracle.predict(test_input)
+
+        # if learning_method == "neural":
+        #     # result = oracle.predict(test_input)[0][0]
+        # elif learning_method == "gaussian":
+        #     result, sigma = oracle.predict(test_input, idx)
+        # else:
+        #     result = oracle.predict(test_input)
 
         difference = norm(expected_value - result)
 
@@ -129,17 +130,19 @@ def create_and_train_oracle(
     differences = []
 
     for idx in range(0, len(considered_y_set)):
-        test_input = np.array([considered_x_set[idx]])
-        expected_value = considered_y_set[idx]
+        test_input = np.array([unscaled_considered_x_set[idx]])
+        expected_value = unscaled_considered_y_set[idx]
 
-        if learning_method == "neural":
-            result = oracle.predict(test_input)[0]
-        elif learning_method == "ltsm":
-            result = oracle.predict(test_input)[0]
-        elif learning_method == "gaussian":
-            result, sigma = oracle.predict(test_input)
-        else:
-            result = oracle.predict(test_input)[0]
+        result = new_oracle.predict(test_input)
+
+        # if learning_method == "neural":
+        #     # result = oracle.predict(test_input)[0]
+        # elif learning_method == "ltsm":
+        #     result = oracle.predict(test_input)[0]
+        # elif learning_method == "gaussian":
+        #     result, sigma = oracle.predict(test_input)
+        # else:
+        #     result = oracle.predict(test_input)[0]
 
         difference = norm(expected_value - result)
 
@@ -176,42 +179,34 @@ def create_and_train_oracle(
             "temp_pred": predicted_temp,
         }]
 
-    if learning_method == "neural":
-        oracle.compile(optimizer='rmsprop',
-                       loss='mse')
-
     # RMSE
     flatten_rmse = np.array([d["rmse_raw"] for d in plot_data]).flatten()
     rmse = flatten_rmse.mean()
     rmse_perc = flatten_rmse[flatten_rmse > np.percentile(flatten_rmse, percentile)].mean()
 
     # Create an oracle object
-    new_oracle = Oracle(oracle, scaler, metadata, learning_method, consumption_data)
+    # new_oracle = Oracle(oracle, scaler, metadata, learning_method, consumption_data)
 
     return new_oracle, plot_data, rmse_perc, rmse, score
 
 
 class Oracle(object):
 
-    def __init__(self, oracle, scaler, metadata, learning_method, data):
-        self.oracle = oracle
+    def __init__(self, scaler, metadata, params):
         self.scaler = scaler
         self.metadata = metadata
-        self.learning_method = learning_method
-        self.data = data
+        self.params = params
+        self.data = None
+        self.state = "CREATED"
 
-    def describe_params(self):
-        return self.metadata
+    def get_state(self):
+        return self.state
+
+    # def describe_params(self):
+    #     return self.metadata
+
+    def train(self, data):
+        raise Exception("Not yet implemented!")
 
     def predict(self, unscaled_input_values):
-        # Transform 'unscaled_input_values' -> 'scaled_input_values'
-        # Do a prediction from 'scaled_input_values' -> 'scaled_output_values'
-        # Transform 'scaled_output_values' -> 'unscaled_output_values'
-        # Return 'unscaled_ouput_values'
-        scaled_input_values = rescale_input(unscaled_input_values.reshape(1, len(self.metadata.get("input"))),
-                                            self.scaler,
-                                            self.metadata.get("variables"))
-
-        raw_result = self.oracle.predict(scaled_input_values)
-        rescaled_result = unscale_output(raw_result, self.scaler, self.metadata.get("variables"))
-        return rescaled_result.reshape(1, len(self.metadata.get("output")))
+        raise Exception("Not yet implemented!")

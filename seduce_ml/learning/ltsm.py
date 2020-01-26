@@ -1,11 +1,9 @@
-from keras.models import Sequential
-from keras.layers import Dense, Activation
-from keras.layers import LSTM
 from numpy import array
 from numpy import hstack
 from keras.models import Sequential
 from keras.layers import LSTM
 from keras.layers import Dense
+from seduce_ml.oracle.oracle import Oracle
 
 
 def flatten(ll):
@@ -54,3 +52,9 @@ def train_oracle(oracle, data, epochs, batch_size):
                y,
                epochs=epochs,
                batch_size=batch_size)
+
+
+class LstmOracle(Oracle):
+
+    def __init__(self, oracle, scaler, metadata):
+        Oracle.__init__(self, oracle, scaler, metadata, "ltsm")

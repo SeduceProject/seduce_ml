@@ -1,5 +1,5 @@
 import unittest
-from src.validation.validation import shift_data, shift_data_ltsm, unscale_input, unscale_output, rescale_input, rescale_output, replace_row_variables, extract_substitutions, collect_substitutions_values, shift_data_ltsm_non_scaled
+from seduce_ml.validation.validation import shift_data, shift_data_ltsm, unscale_input, unscale_output, rescale_input, rescale_output, replace_row_variables, extract_substitutions, collect_substitutions_values, shift_data_ltsm_non_scaled
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 import json

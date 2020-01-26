@@ -4,6 +4,7 @@ from sklearn.externals import joblib
 import datetime as dt
 from seduce_ml.learning.ltsm import hstack, split_sequences
 from seduce_ml.data.seduce_data_loader import get_additional_variables
+from seduce_ml.data.scaling import *
 
 
 def validate_seduce_ml(consumption_data, server_id, use_scaler, scaler_path=None, tmp_figures_folder=None, figure_label="", oracle_object=None):
@@ -23,16 +24,16 @@ def validate_seduce_ml(consumption_data, server_id, use_scaler, scaler_path=None
 
     [server_idx] = [idx for idx, e in enumerate(metadata.get("output_variables")) if e.get("output_of", None) == server_id]
 
-    if oracle_object.learning_method == "ltsm":
-        _, n_steps, n_features = oracle.input_shape
-        data_size, _ = x.shape
-
-        x = x.reshape(data_size, n_features)
-        y = y.reshape(data_size, 1)
-
-        dataset = hstack((x, y))
-
-        x, y = split_sequences(dataset, n_steps)
+    # if oracle_object.learning_method == "ltsm":
+    #     _, n_steps, n_features = oracle.input_shape
+    #     data_size, _ = x.shape
+    #
+    #     x = x.reshape(data_size, n_features)
+    #     y = y.reshape(data_size, 1)
+    #
+    #     dataset = hstack((x, y))
+    #
+    #     x, y = split_sequences(dataset, n_steps)
 
     if scaler is None:
         if scaler_path is None:
@@ -89,8 +90,8 @@ def validate_seduce_ml(consumption_data, server_id, use_scaler, scaler_path=None
 
         sorted_dts = sorted(dts)
 
-        if oracle_object.learning_method == "ltsm":
-            sorted_dts = sorted_dts[-len(y1_data):]
+        # if oracle_object.learning_method == "ltsm":
+        #     sorted_dts = sorted_dts[-len(y1_data):]
 
         ax.plot(sorted_dts, y1_data, color='blue', label='actual temp.', linewidth=0.5)
         ax.plot(sorted_dts, y2_data, color='red', label='predicted temp.', alpha=0.5, linewidth=0.5)
@@ -117,70 +118,6 @@ def validate_seduce_ml(consumption_data, server_id, use_scaler, scaler_path=None
                     )
 
     return rmse, rmse_perc
-
-
-def unscale_input(x, scaler, variables):
-    """Unscales an input 2D array"""
-
-    if len(x.shape) != 2:
-        raise Exception("Expecting an 2D array")
-
-    row_count, columns_count = x.shape
-    additional_columns_count = len(variables) - columns_count
-
-    augmented_array = np.insert(x, [columns_count] * additional_columns_count, -10, axis=1)
-
-    unscaled_augmented_array = scaler.inverse_transform(augmented_array)
-
-    return unscaled_augmented_array[:, :columns_count]
-
-
-def rescale_input(x, scaler, variables):
-    """Rescales an input 2D array"""
-
-    if len(x.shape) != 2:
-        raise Exception("Expecting an 2D array")
-
-    row_count, columns_count = x.shape
-    additional_columns_count = len(variables) - columns_count
-
-    augmented_array = np.insert(x, [columns_count] * additional_columns_count, -10, axis=1)
-
-    unscaled_augmented_array = scaler.transform(augmented_array)
-
-    return unscaled_augmented_array[:, :columns_count]
-
-
-def unscale_output(y, scaler, variables):
-    """Unscales an output 2D array"""
-
-    if len(y.shape) != 2:
-        raise Exception("Expecting an 2D array")
-
-    row_count, columns_count = y.shape
-    additional_columns_count = len(variables) - columns_count
-
-    augmented_array = np.insert(y, [0] * additional_columns_count, -10, axis=1)
-
-    unscaled_augmented_array = scaler.inverse_transform(augmented_array)
-
-    return unscaled_augmented_array[:, -columns_count:]
-
-
-def rescale_output(y, scaler, variables):
-    """Rescales an output 2D array"""
-
-    if len(y.shape) != 2:
-        raise Exception("Expecting an 2D array")
-
-    row_count, columns_count = y.shape
-    additional_columns_count = len(variables) - columns_count
-
-    augmented_array = np.insert(y, [0] * additional_columns_count, -10, axis=1)
-
-    unscaled_augmented_array = scaler.transform(augmented_array)
-
-    return unscaled_augmented_array[:, -columns_count:]
 
 
 def get_type_var(var):
@@ -362,7 +299,7 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
         raise Exception("Please provide an oracle_object")
 
     oracle = oracle_object.oracle
-    scaler = oracle_object.scaler
+    # scaler = oracle_object.scaler
     metadata = oracle_object.metadata
 
     x = consumption_data.get("x")
@@ -371,23 +308,23 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
     unscaled_y = consumption_data.get("unscaled_y")
     tss = consumption_data.get("tss")
 
-    additional_variable = get_additional_variables(server_id, oracle_object.learning_method)
-    expected_input_columns_count = len([var for var in additional_variable if var.get("input", False)])
-    expected_output_columns_count = len([var for var in additional_variable if var.get("output", False)])
+    # additional_variable = get_additional_variables(server_id, oracle_object.learning_method)
+    # expected_input_columns_count = len([var for var in additional_variable if var.get("input", False)])
+    # expected_output_columns_count = len([var for var in additional_variable if var.get("output", False)])
 
     # server_idx = servers_names_raw.index(server_id)
     [server_idx] = [idx for idx, e in enumerate(metadata.get("output_variables")) if e.get("output_of", None) == server_id]
 
-    if oracle_object.learning_method == "ltsm":
-        _, n_steps, n_features = oracle.input_shape
-        data_size, _ = x.shape
-
-        x = x.reshape(data_size, n_features)
-        y = y.reshape(data_size, 1)
-
-        dataset = hstack((x, y))
-
-        x, y = split_sequences(dataset, n_steps)
+    # if oracle_object.learning_method == "ltsm":
+    #     _, n_steps, n_features = oracle.input_shape
+    #     data_size, _ = x.shape
+    #
+    #     x = x.reshape(data_size, n_features)
+    #     y = y.reshape(data_size, 1)
+    #
+    #     dataset = hstack((x, y))
+    #
+    #     x, y = split_sequences(dataset, n_steps)
 
     start_step = 0
     end_step = len(y)

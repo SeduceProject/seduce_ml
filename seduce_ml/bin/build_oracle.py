@@ -1,21 +1,16 @@
 import sys
-import uuid
 import matplotlib.pyplot as plt
 from seduce_ml.data.seduce_data_loader import generate_real_consumption_data
 import os
-from texttable import Texttable
-from sklearn.externals import joblib
 from seduce_ml.validation.validation import validate_seduce_ml, evaluate_prediction_power
 from seduce_ml.oracle.oracle import create_and_train_oracle
 from sklearn.model_selection import train_test_split
 import time
 import numpy as np
-from seduce_ml.data.correlation import investigate_correlations
+from seduce_ml.data.scaling import *
 
 
-def train(epoch_count,
-          batch_size,
-          group_by,
+def train(group_by,
           percentile,
           start_date,
           end_date,
@@ -25,9 +20,10 @@ def train(epoch_count,
           shuffle,
           server_id,
           use_scaler,
-          nb_layers,
-          neurons_per_layers,
-          activation_function):
+          # nb_layers,
+          # neurons_per_layers,
+          # activation_function,
+          params):
     comparison_plot_data = []
 
     if not os.path.exists("data"):
@@ -70,11 +66,20 @@ def train(epoch_count,
                                                                                  test_size=1 - train_proportion,
                                                                                  shuffle=shuffle)
 
+        unscaled_x_train = unscale_input(x_train, consumption_data.get("scaler"), consumption_data.get("metadata").get("variables"))
+        unscaled_x_test = unscale_input(x_test, consumption_data.get("scaler"), consumption_data.get("metadata").get("variables"))
+        unscaled_y_train = unscale_output(y_train, consumption_data.get("scaler"), consumption_data.get("metadata").get("variables"))
+        unscaled_y_test = unscale_output(y_test, consumption_data.get("scaler"), consumption_data.get("metadata").get("variables"))
+
         train_test_data = {
             "x_train": x_train,
+            "unscaled_x_train": unscaled_x_train,
             "x_test": x_test,
+            "unscaled_x_test": unscaled_x_test,
             "y_train": y_train,
+            "unscaled_y_train": unscaled_y_train,
             "y_test": y_test,
+            "unscaled_y_test": unscaled_y_test,
             "tss_train": tss_train,
             "tss_test": tss_test
         }
@@ -82,19 +87,11 @@ def train(epoch_count,
         consumption_data_with_train_test_data = {**consumption_data, **train_test_data}
 
         (oracle_object, plot_data, rmse_perc, rmse, score) =\
-            create_and_train_oracle(
-                consumption_data_with_train_test_data,
-                learning_method=learning_method,
-                params=PARAMS,
-                epoch=epoch_count,
-                batch_size=batch_size,
-                percentile=percentile,
-                nb_inputs=nb_inputs,
-                nb_outputs=nb_outputs,
-                nb_layers=nb_layers,
-                neurons_per_layers=neurons_per_layers,
-                activation_function=activation_function,
-                metadata=consumption_data_with_train_test_data.get("metadata"))
+            create_and_train_oracle(consumption_data_with_train_test_data,
+                                    learning_method=learning_method,
+                                    percentile=percentile,
+                                    metadata=consumption_data_with_train_test_data.get("metadata"),
+                                    params=params)
 
         consumption_data_test = {**consumption_data}
         consumption_data_test["x"] = consumption_data_with_train_test_data.get("x_test")
@@ -385,21 +382,35 @@ if __name__ == "__main__":
         neurons_per_layers = PARAMS.get("neurons_per_layers")
         activation_function = PARAMS.get("activation_function")
 
-        oracle_object = train(epoch_count,
-                              batch_size,
-                              group_by,
-                              percentile,
-                              start_date,
-                              end_date,
-                              validation_start_date,
-                              validation_end_date,
-                              tmp_figures_folder,
-                              shuffle,
-                              server_id,
-                              use_scaler,
-                              nb_layers,
-                              neurons_per_layers,
-                              activation_function)
+        if learning_method in ["neural", "ltsm"]:
+            params = {
+                "epoch_count": epoch_count,
+                "batch_size": batch_size,
+                "nb_layers": nb_layers,
+                "neurons_per_layers": neurons_per_layers,
+                "activation_function": activation_function
+            }
+        else:
+            params = {}
+
+        oracle_object = train(
+            # epoch_count,
+            # batch_size,
+            group_by,
+            percentile,
+            start_date,
+            end_date,
+            validation_start_date,
+            validation_end_date,
+            tmp_figures_folder,
+            shuffle,
+            server_id,
+            use_scaler,
+            # nb_layers,
+            # neurons_per_layers,
+            # activation_function,
+            params
+        )
 
         import pickle
         import dill
@@ -414,5 +425,7 @@ if __name__ == "__main__":
             # oracle_object = joblib.load(oracle_object_file)
             # oracle_object = pickle.load(oracle_object_file)
             oracle_object = dill.load(oracle_object_file)
+            prediction = oracle_object.predict(oracle_object.data.get("unscaled_x")[0])
+            print(prediction)
 
     sys.exit(0)
