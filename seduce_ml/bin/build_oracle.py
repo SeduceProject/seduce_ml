@@ -292,17 +292,17 @@ if __name__ == "__main__":
 
     tmp_figures_folder = "tmp/%s" % time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time()))
 
-    # shuffle = True
-    shuffle = False
+    shuffle = True
+    # shuffle = False
 
     server_id = "ecotype-43"
 
     use_scaler = True
     # use_scaler = False
 
-    learning_method = "neural"
+    # learning_method = "neural"
     # learning_method = "knearest"
-    # learning_method = "gaussian"
+    learning_method = "gaussian"
     # learning_method = "ltsm"
 
     EPOCHS = [

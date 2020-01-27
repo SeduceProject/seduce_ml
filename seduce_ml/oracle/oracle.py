@@ -13,6 +13,7 @@ def create_and_train_oracle(
 
     from seduce_ml.learning.neural import NeuralNetworkOracle
     from seduce_ml.learning.knearest import KNearestOracle
+    from seduce_ml.learning.gaussian import GaussianProcessOracle
 
     if params is None:
         params = {}
@@ -44,6 +45,8 @@ def create_and_train_oracle(
         new_oracle = NeuralNetworkOracle(scaler, metadata, params)
     elif learning_method == "knearest":
         new_oracle = KNearestOracle(scaler, metadata, params)
+    elif learning_method == "gaussian":
+        new_oracle = GaussianProcessOracle(scaler, metadata, params)
 
     if new_oracle is None:
         raise Exception(f"Could not understand which Oracle to use (learning_method='{learning_method}')")
