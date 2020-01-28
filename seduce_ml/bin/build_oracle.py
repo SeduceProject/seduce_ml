@@ -302,11 +302,11 @@ if __name__ == "__main__":
     use_scaler = True
     # use_scaler = False
 
-    # learning_method = "neural"
+    learning_method = "neural"
     # learning_method = "knearest"
     # learning_method = "gaussian"
     # learning_method = "ltsm"
-    learning_method = "proba"
+    # learning_method = "proba"
 
     EPOCHS = [
         # 500,

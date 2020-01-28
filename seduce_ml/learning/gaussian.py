@@ -1,10 +1,10 @@
-from sklearn.gaussian_process.kernels import RBF
+from sklearn.gaussian_process.kernels import RBF, DotProduct, WhiteKernel, ConstantKernel
 from sklearn.gaussian_process import GaussianProcessRegressor
 from seduce_ml.oracle.oracle import Oracle
 from seduce_ml.data.scaling import *
 
-NB_NEIGHBOURS = 5
-SUBSAMPLES = 200
+NB_NEIGHBOURS = 10
+SUBSAMPLES = 1000
 
 
 class GaussianProcessOracle(Oracle):
@@ -22,7 +22,9 @@ class GaussianProcessOracle(Oracle):
         # Instantiate a Gaussian Process model
         param = [5 for x in range(0, x_train.shape[1])]
 
-        kernel = RBF(param, (1e-2, 1e2))
+        # kernel = RBF(param, (1e-2, 1e2))
+        # kernel = DotProduct() + WhiteKernel()
+        kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RBF(10, (1e-3, 1e3))
         self.gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=15, alpha=1e-2)
         self.gp.fit(x_train, y_train)
 

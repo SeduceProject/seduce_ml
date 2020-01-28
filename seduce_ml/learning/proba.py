@@ -14,7 +14,8 @@ class ProbaOracle(Oracle):
 
     def train(self, data):
         self.interpolation_delta = 0.01
-        self.step = 0.10
+        self.interpolation_kind = "cubic"
+        self.step = 0.15
         self.data = data
 
         # Indexes values of all variables
@@ -32,11 +33,11 @@ class ProbaOracle(Oracle):
             for idx2, output_variable in enumerate(output_variables):
                 var_index2 = {
                     "var_pov": {},
-                    "output_pov": {}
                 }
                 tuples = [(a, b)
                           for (a, b) in zip(numpy.round(x_train[:, idx], decimals=2),
                                             numpy.round(y_train[:, idx2], decimals=2))]
+
                 # Construct PDF from the <input variable> point of view
                 for i in numpy.arange(0, 1.0, step):
                     tuples_in_range = [(a, b) for (a, b) in tuples if a >= i and a < (i + step)]
@@ -57,7 +58,7 @@ class ProbaOracle(Oracle):
                     for k,v in var_pov.items()
                     for k1, v1 in v.items()
                 ]).reshape(len(y), len(x))
-                z_interp = interpolate.interp2d(x, y, z, kind='cubic')
+                z_interp = interpolate.interp2d(x, y, z, kind=self.interpolation_kind)
                 xnew = np.arange(0, 1, self.interpolation_delta)
                 ynew = np.arange(0, 1, self.interpolation_delta)
                 znew = z_interp(xnew, ynew)
@@ -96,6 +97,7 @@ class ProbaOracle(Oracle):
                 candidates += [computed_value]
 
         reshaped_candidates = np.array(candidates).reshape(len(input_variables), len(output_variables))
+
         raw_result = numpy.mean(reshaped_candidates, axis=0).reshape(1, len(self.metadata.get("output")))
         rescaled_result = unscale_output(raw_result, self.scaler, self.metadata.get("variables"))
         return rescaled_result.reshape(1, len(self.metadata.get("output")))
