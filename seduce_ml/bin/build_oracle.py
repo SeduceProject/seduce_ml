@@ -215,6 +215,8 @@ def train(group_by,
         figure_label = f"validation_{learning_method}"
     elif learning_method == "ltsm":
         figure_label = f"validation_{learning_method}"
+    elif learning_method == "proba":
+        figure_label = f"validation_{learning_method}"
     else:
         raise Exception("Could not understand which learning method is used")
 
@@ -302,8 +304,9 @@ if __name__ == "__main__":
 
     # learning_method = "neural"
     # learning_method = "knearest"
-    learning_method = "gaussian"
+    # learning_method = "gaussian"
     # learning_method = "ltsm"
+    learning_method = "proba"
 
     EPOCHS = [
         # 500,

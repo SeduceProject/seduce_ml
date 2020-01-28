@@ -13,116 +13,18 @@ def get_additional_variables(server_id, learning_method):
     server_num = int(server_num_str)
 
     variables = [
-        # {
-        #     "name": f"ecotype_{server_num}_consumption",
-        #     "server_consumption": f"ecotype-{server_num}",
-        #     "shift": False,
-        #     "rescale": lambda x: x,
-        #     # "weight": 3,
-        # },
-        # {
-        #     "name": f"ecotype_{server_num}_consumption",
-        #     "server_consumption": f"ecotype-{server_num}",
-        #     "shift": True,
-        #     "shift_count": 1,
-        #     "rescale": lambda x: x,
-        #     # "weight": 3,
-        # },
-        # {
-        #     "name": f"ecotype_{server_num}_consumption_past2",
-        #     "server_consumption": f"ecotype-{server_num}",
-        #     "shift": True,
-        #     "shift_count": 2,
-        #     "rescale": lambda x: x,
-        #     # "weight": 3,
-        # },
-        # {
-        #     "name": f"ecotype_{server_num+1}_consumption",
-        #     "server_consumption": f"ecotype-{server_num+1}",
-        #     "shift": False,
-        #     "rescale": lambda x: x,
-        #     # "weight": 3,
-        # },
-        # {
-        #     "name": f"ecotype_{server_num+2}_consumption",
-        #     "server_consumption": f"ecotype-{server_num+2}",
-        #     "shift": False,
-        #     "rescale": lambda x: x,
-        #     "weight": 3,
-        # },
-        # {
-        #     "name": f"ecotype_{server_num+2}_consumption",
-        #     "server_consumption": f"ecotype-{server_num+2}",
-        #     "shift": False,
-        #     "rescale": lambda x: x,
-        #     "weight": 3,
-        # },
-        # {
-        #     "name": f"ecotype_{server_num}_temperature",
-        #     "server_temperature": f"ecotype-{server_num}",
-        #     "shift": False,
-        #     "rescale": lambda x: x,
-        #     "output": True,
-        # },
-        # {
-        #     "name": f"aggregate_cluster_consumption",
-        #     "sensor": f"hardware_cluster",
-        #     "aggregate": True,
-        #     # "shift": True,
-        #     # "shift_count": 1,
-        #     "weight": 3
-        # },
-        # {
-        #     "name": f"inrow_unit_return_air_temp_n-1",
-        #     "sensor": f"inrow_unit_return_air_temp",
-        #     "aggregate": True,
-        #     "shift": True,
-        #     "shift_count": 1,
-        #     "weight": 3
-        # },
-        # {
-        #     "name": f"aggregate_cluster_consumption",
-        #     "sensor": f"hardware_cluster",
-        #     "aggregate": True,
-        #     # "shift": True,
-        #     # "shift_count": 1,
-        #     "weight": 3
-        # },
         {
             "name": f"aggregate_cluster_consumption_n-1",
             "sensor": f"hardware_cluster",
             "aggregate": True,
             "shift": True,
             "shift_count": 1,
-            # "weight": 3
         },
-        # {
-        #     "name": f"aggregate_cluster_consumption_n-2",
-        #     "sensor": f"hardware_cluster",
-        #     "aggregate": True,
-        #     "shift": True,
-        #     "shift_count": 2,
-        #     "weight": 3
-        # },
-        # {
-        #     "name": f"inrow_unit_return_air_temp",
-        #     "sensor": f"inrow_unit_return_air_temp",
-        #     "aggregate": True,
-        #     "weight": 3
-        # },
-        # {
-        #     "name": f"inrow_unit_rack_inlet_temperature_1",
-        #     "sensor": f"inrow_unit_rack_inlet_temperature_1",
-        #     "aggregate": True,
-        #     "weight": 3
-        # }
     ]
 
     variables += [{
         "name": f"ecotype_{i}_consumption",
         "server_consumption": f"ecotype-{i}",
-        # "shift": True,
-        # "shift_count": 1,
     }
         for i in range(37, 49)]
 
@@ -151,48 +53,6 @@ def get_additional_variables(server_id, learning_method):
         "output_of": f"ecotype-{i}"
     }
         for i in range(37, 49)]
-
-    # variables += [{
-    #     "name": f"ecotype_{i}_past_cons_n-1",
-    #     "server_consumption": f"ecotype-{i}",
-    #     "shift": True,
-    #     "shift_count": 1,
-    # }
-    #     for i in range(server_num-2, server_num+3)]
-
-    # variables += [{
-    #     "name": f"ecotype_{i}_past_cons_n-2",
-    #     "server_consumption": f"ecotype-{i}",
-    #     "shift": True,
-    #     "shift_count": 2,
-    # }
-    #     for i in range(37, 49)]
-
-    # variables += [{
-    #     "name": f"ecotype_{i}_past_cons_n-1_diff",
-    #     "server_consumption": f"ecotype-{i}",
-    #     "difference": True,
-    #     "shift": True,
-    #     "shift_count": 1,
-    # }
-    #     for i in range(37, 49)]
-
-    # variables += [{
-    #     "name": f"ecotype_{i}_past_cons_n-2_diff",
-    #     "server_consumption": f"ecotype-{i}",
-    #     "difference": True,
-    #     "shift": True,
-    #     "shift_count": 2,
-    # }
-    #     for i in range(37, 49)]
-
-    # variables += [{
-    #     "name": f"ecotype_{i}_past_temp_n-2",
-    #     "server_temperature": f"ecotype-{i}",
-    #     "shift": True,
-    #     "shift_count": 6,
-    # }
-    #     for i in range(37, 49)]
 
     return variables
 
