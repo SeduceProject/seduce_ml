@@ -36,20 +36,20 @@ def get_additional_variables(server_id, learning_method):
     }
         for i in range(37, 49)]
 
-    variables += [{
-        "name": f"ecotype_{i}_temperature_past_1",
-        "server_temperature": f"ecotype-{i}",
-        "shift": True,
-        "shift_count": 1,
-        # "output": True
-    }
-        for i in range(37, 49)]
+    # variables += [{
+    #     "name": f"ecotype_{i}_temperature_past_1",
+    #     "server_temperature": f"ecotype-{i}",
+    #     "shift": True,
+    #     "shift_count": 1,
+    #     # "output": True
+    # }
+    #     for i in range(37, 49)]
 
     variables += [{
         "name": f"ecotype_{i}_temperature",
         "server_temperature": f"ecotype-{i}",
         "output": True,
-        "become": f"ecotype_{i}_temperature_past_1",
+        # "become": f"ecotype_{i}_temperature_past_1",
         "output_of": f"ecotype-{i}"
     }
         for i in range(37, 49)]

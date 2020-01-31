@@ -298,7 +298,7 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
 
     plot_data = []
 
-    time_periods_without_real_temp = 4
+    time_periods_without_real_temp = 8
 
     resync_counter = 0
     current_cycle_counter = 0
@@ -327,13 +327,13 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
         current_cycle_counter = 0 if resync else current_cycle_counter + 1
 
         if current_cycle_counter == 0:
-            diff_y = np.zeros(len(metadata.get("output")))
-            diff_z = np.zeros(len(metadata.get("output")))
+            h = np.zeros(len(metadata.get("output")))
+            # diff_z = np.zeros(len(metadata.get("output")))
 
         servers_consumptions_copy = servers_consumptions.copy()
         if not resync and resync_counter > 0:
             # Reuse previous variables
-            _y = result_reusing_past_pred + diff_y + diff_z
+            _y = result_reusing_past_pred - h
             for var in variables_that_travels:
                 substituting_output_var_idx = metadata.get("output").index(var.get("name"))
                 substituting_input_var_idx = metadata.get("input").index(var.get("become"))
@@ -345,11 +345,15 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
 
         if current_cycle_counter == 0:
             raw_prediction = oracle_object.predict(servers_consumptions)
-            diff_y = predicted_temp_reusing_past_pred - raw_prediction  # CORRECT
-            diff_z = expected_temp - raw_prediction
+            # diff_y = predicted_temp_reusing_past_pred - raw_prediction  # CORRECT
+            h = raw_prediction - expected_temp
             # diff_z = np.clip(diff_z, a_min=-1, a_max=1)
 
-            print(f"{resync_counter} => mean: {np.mean(diff_z)} and {np.mean(diff_y)}")
+            print(f"{resync_counter} => mean: {np.mean(h)}")
+        else:
+            # diff_y = (1.0 - 1.0 / time_periods_without_real_temp) * diff_y
+            # diff_z = (1.0 - 1.0 / time_periods_without_real_temp) * diff_z
+            pass
 
         # if result_reusing_past_pred is not None:
         #     print(f"{predicted_temp_reusing_past_pred - result_reusing_past_pred}")
@@ -368,7 +372,10 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
             "rmse_raw": np.sqrt(mse),
             "temp_actual": expected_temp,
             "temp_pred": predicted_temp,
-            "temp_pred_reusing_past_pred": predicted_temp_reusing_past_pred,
+            # "temp_pred": predicted_temp_reusing_past_pred,
+            # "temp_pred_reusing_past_pred": predicted_temp_reusing_past_pred + diff_z,
+            # "temp_pred_reusing_past_pred": predicted_temp_reusing_past_pred - h,
+            "temp_pred_reusing_past_pred": predicted_temp_reusing_past_pred - h,
             "resync": resync,
             "ts_to_date": ts_to_date
         }]

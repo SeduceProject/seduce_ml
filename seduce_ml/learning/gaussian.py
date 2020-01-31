@@ -3,8 +3,8 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from seduce_ml.oracle.oracle import Oracle
 from seduce_ml.data.scaling import *
 
-NB_NEIGHBOURS = 10
-SUBSAMPLES = 1000
+NB_NEIGHBOURS = 5
+SUBSAMPLES = 2000
 
 
 class GaussianProcessOracle(Oracle):

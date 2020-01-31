@@ -265,20 +265,20 @@ if __name__ == "__main__":
     # epoch_count = 3000
     epoch_count = 1000
     batch_size = 1000
-    group_by = 20
+    group_by = 15
     percentile = 80
 
     network_path = "last"
 
     start_date = "2019-12-20T00:00:00.000Z"
-    end_date = "2020-01-10T00:00:00.000Z"
+    end_date = "2020-01-25T00:00:00.000Z"
 
     # start_date = "2019-10-23T00:00:00.000Z"
     # end_date = "2019-10-25T00:00:00.000Z"
     # end_date = "2019-09-11T00:00:00.000Z"
 
-    validation_start_date = "2020-01-10T00:00:00.000Z"
-    validation_end_date = "2020-01-16T00:00:00.000Z"
+    validation_start_date = "2020-01-25T00:00:00.000Z"
+    validation_end_date = "2020-01-30T01:00:00.000Z"
 
     # validation_start_date = "2019-10-21T07:00:00.000Z"
     # validation_end_date = "2019-10-23T18:00:00.000Z"
@@ -320,7 +320,7 @@ if __name__ == "__main__":
         # 4,
     ]
     NEURONS_PER_LAYER = [
-        8,
+        12,
         # 32,
         # 64
         # 128,
