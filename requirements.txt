@@ -2,6 +2,7 @@ keras
 tensorflow
 requests
 PyFunctional
+flask
 mcerp
 pymc3
 arviz

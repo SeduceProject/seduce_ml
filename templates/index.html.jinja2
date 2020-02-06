@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Density Contour Matrix with Brushing</title>
+<script src="{{ url_for("static", filename="js/vue.js") }}"></script>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+
+<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+
+<style>
+    .select_columns {
+        margin-right: 10px;
+    }
+
+    .spinner-variables-loading {
+        left: 50%;
+        text-align: center;
+    }
+
+    .selected {
+        opacity: 1 !important;
+        stroke: black;
+        stroke-width: 1px;
+        z-index: 1000;
+    }
+
+    .scatter_plot_circle {
+        z-index: 1;
+        opacity: 5%;
+    }
+
+    .figure {
+        text-align: center;
+    }
+
+    .y_label {
+        writing-mode: sideways-lr;
+        text-align: center;
+        margin: 20px;
+    }
+
+</style>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
+<body>
+
+<div id="app" v-cloak>
+
+    <main role="main" class="container clearfix">
+
+        <div class="accordion" id="accordionExample">
+            <div class="card">
+                <div class="card-header" id="headingOne">
+                    <h2 class="mb-0">
+                        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne"
+                                aria-expanded="true" aria-controls="collapseOne">
+                            Select variables
+                        </button>
+                    </h2>
+                </div>
+
+                <div id="collapseOne" class="collapse show" aria-labelledby="headingOne"
+                     data-parent="#accordionExample">
+                    <div class="card-body">
+                        <div>
+                            <div v-if="columns.length <= 0" class="spinner-variables-loading">
+                                <div class="spinner-border m-5" role="status">
+                                    <span class="sr-only">Loading...</span>
+                                </div>
+                            </div>
+                            <div v-for="column in columns" class="float-left select_columns"
+                                 v-bind:id=column>
+                                <input type="checkbox" v-bind:value=column v-model="selected_columns"
+                                       v-on:click="display_one_scatter_plot([[column]])">
+                                <span class="badge badge-pill badge-primary">[[ column ]]</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <br>
+            </div>
+        </div>
+    </main>
+    <br/>
+    <br/>
+    <br/>
+    <br/>
+
+
+    <!-- Display the graphs here -->
+    <div v-for="column in selected_columns" class="float-left figure" :key="column">
+        <table>
+            <tr>
+                <td style="width: 50px;">
+                    <div class="y_label">[[ compare_with_column ]]</div>
+                </td>
+                <td>
+                    <div v-bind:id="'dataviz_'+column"></div>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td><span>[[ column ]]</span></td>
+            </tr>
+        </table>
+    </div>
+    <!-- Displayed the graphs here -->
+
+</div>
+
+<script>
+    Vue.filter('formatDate', function (d) {
+        if (!window.Intl) return d;
+        return new Intl.DateTimeFormat('en-US').format(new Date(d));
+    });
+
+    const app = new Vue({
+        el: '#app',
+        data: {
+            columns: [],
+            selected_columns: [],
+            selected_points: [],
+            app_data: undefined,
+            raw_data: undefined,
+            svgs: [],
+            compare_with_column: "ecotype_43_temperature",
+            color_column: "ecotype_43_consumption"
+        },
+        methods: {
+            reload_available_columns: function () {
+                if (this.app_data != undefined) {
+                    this.columns = Object.keys(this.app_data)
+                }
+            },
+            display_one_scatter_plot: function (element) {
+
+                var column_id = element[0][0];
+
+                setTimeout(function () {
+                    // set the dimensions and margins of the graph
+                    var margin = {top: 10, right: 30, bottom: 30, left: 60},
+                        width = 460 - margin.left - margin.right,
+                        height = 400 - margin.top - margin.bottom;
+
+                    // append the svg object to the body of the page
+                    let graph_column_id = "#dataviz_" + column_id;
+                    var svg = d3.select(graph_column_id)// + column_id)
+                        .append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform",
+                            "translate(" + margin.left + "," + margin.top + ")");
+
+                    // Add X axis
+                    let data_x = app.app_data[column_id].map(x => parseFloat(x));
+                    let data_y = app.app_data[app.compare_with_column].map(x => parseFloat(x));
+                    let data_z = app.app_data[app.color_column].map(x => parseFloat(x));
+
+                    let x_min = Math.min(...data_x);
+                    let x_max = Math.max(...data_x);
+                    let y_min = Math.min(...data_y);
+                    let y_max = Math.max(...data_y);
+                    let z_min = Math.min(...data_z);
+                    let z_max = Math.max(...data_z);
+                    var x = d3.scaleLinear()
+                        .domain([x_min, x_max])
+                        .range([0, width]);
+                    svg.append("g")
+                        .attr("transform", "translate(0," + height + ")")
+                        .call(d3.axisBottom(x));
+
+                    // Add Y axis
+                    var y = d3.scaleLinear()
+                        .domain([y_min, y_max])
+                        .range([height, 0]);
+                    svg.append("g")
+                        .call(d3.axisLeft(y));
+
+                    // Option 3: Viridis.
+                    var myColor = d3.scaleSequential().domain([z_min, z_max])
+                        .interpolator(d3.interpolateViridis);
+
+                    // Add dots
+                    var myCircle = svg.append('g')
+                        .selectAll("circle")
+                        .data(app.raw_data)
+                        .enter()
+                        .append("circle")
+                        .attr("cx", function (d) {
+                            return x(d[column_id]);
+                        })
+                        .attr("cy", function (d) {
+                            return y(d[app.compare_with_column]);
+                        })
+                        .attr("data", function (d) {
+                            return d;
+                        })
+                        .attr("r", 6)
+                        .attr("class", function (d) {
+                            return "scatter_plot_circle " + d["class"];
+                        })
+                        .style("fill", function (d) {
+                            let c = myColor(d[app.color_column])
+                            return c;
+                        })
+                        .style("opacity", 0.5)
+
+                    // Add brushing
+                    svg.call(d3.brush()                 // Add the brush feature using the d3.brush function
+                        .extent([[0, 0], [width, height]]) // initialise the brush area: start at 0,0 and finishes at width,height: it means I select the whole graph area
+                        .on("start brush", updateChart) // Each time the brush selection changes, trigger the 'updateChart' function
+                    )
+
+                    // Function that is triggered when brushing is performed
+                    function updateChart() {
+                        var selection = [];
+                        extent = d3.event.selection;
+                        myCircle.classed("scatter_plot_circle selected", function (d) {
+                            return isBrushed(extent, x(d[column_id]), y(d[app.compare_with_column]), d, selection)
+                        })
+                        app.selected_points = selection;
+                        for (third_party_svg of app.svgs) {
+                            third_party_svg.dispatch("updateD3");
+                        }
+                    }
+
+                    // A function that return TRUE or FALSE according if a dot is in the selection or not
+                    function isBrushed(brush_coords, cx, cy, d, selection) {
+                        var x0 = brush_coords[0][0],
+                            x1 = brush_coords[1][0],
+                            y0 = brush_coords[0][1],
+                            y1 = brush_coords[1][1];
+                        let condition = x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;
+
+                        if (condition) {
+                            selection.push(d);
+                            d["class"] = "scatter_plot_circle selected";
+                        } else {
+                            d["class"] = "scatter_plot_circle";
+                        }
+
+                        return condition;    // This return TRUE or FALSE depending on if the points is in the selected area
+                    }
+
+                    function updateSelectedPoints() {
+                        let circles = svg
+                            .selectAll("circle")
+                            .data(app.raw_data)
+                            .attr("class", function (d) {
+                                return d["class"];
+                            });
+                    }
+
+                    svg.on("updateD3", function () {
+                        updateSelectedPoints();
+                    });
+
+                    app.svgs.push(svg);
+
+                }, 500);
+
+
+            },
+            reload_all_data: function () {
+                this.reload_available_columns()
+            }
+        },
+        beforeMount: function () {
+            d3.csv("{{ url_for("static", filename="data/all_columns_export.csv") }}", function (data) {
+                result = {}
+                // prepare result with columns
+                for (var column of data["columns"]) {
+                    if (column != "") {
+                        result[column] = []
+                    }
+                }
+                // populate result with columns' data
+                for (var line of data) {
+                    for (var column of data["columns"]) {
+                        if (column != "") {
+                            result[column].push(line[column])
+                        }
+                    }
+                }
+                // set app_data variable
+                this.app_data = result
+                this.raw_data = data
+            }.bind(this));
+            setInterval(function () {
+                this.reload_all_data();
+            }.bind(this), 1000);
+        },
+        delimiters: ['[[', ']]']
+    });
+</script>
+
+</body>
+</html>

@@ -13,6 +13,7 @@ tmp
 notebooks/.ipynb_checkpoints
 tmp.zip
 oracle.pickle
+*.csv
 
 ## INTELLIJ / PyCharm GITIGNORE
 

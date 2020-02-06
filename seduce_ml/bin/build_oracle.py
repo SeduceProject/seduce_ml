@@ -9,6 +9,7 @@ from seduce_ml.data.seduce_data_loader import generate_real_consumption_data
 from seduce_ml.validation.validation import validate_seduce_ml, evaluate_prediction_power
 from seduce_ml.oracle.oracle import create_and_train_oracle
 from seduce_ml.data.scaling import *
+from seduce_ml.data.correlation import investigate_correlations
 
 
 def train(group_by,
@@ -365,17 +366,17 @@ if __name__ == "__main__":
     if not os.path.exists(tmp_figures_folder):
         os.makedirs(tmp_figures_folder)
 
-    # investigate_correlations(
-    #     start_date,
-    #     end_date,
-    #     True,
-    #     f"data/data_{group_by}m.json",
-    #     group_by,
-    #     None,
-    #     True,
-    #     [f"ecotype-{i}" for i in range(37, 49)],
-    #     tmp_figures_folder
-    # )
+    investigate_correlations(
+        start_date,
+        end_date,
+        True,
+        f"data/data_{group_by}m.json",
+        group_by,
+        None,
+        True,
+        [f"ecotype-{i}" for i in range(37, 49)],
+        tmp_figures_folder
+    )
 
     for PARAMS in TEST_PARAMS:
 
