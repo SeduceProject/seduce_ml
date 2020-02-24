@@ -1,7 +1,9 @@
+import pandas
+import datetime as dt
 import matplotlib.pyplot as plt
 from sklearn.externals import joblib
-import datetime as dt
 from seduce_ml.data.scaling import *
+from sklearn.linear_model import LinearRegression
 
 
 def validate_seduce_ml(consumption_data, server_id, use_scaler, scaler_path=None, tmp_figures_folder=None, figure_label="", oracle_object=None):
@@ -278,6 +280,31 @@ def shift_data(x, variables, scaler, initial_substitutions, skip_types=[]):
     return rescale_input(unscaled_result, scaler, variables)
 
 
+LINEAR_REGRESSORS = {}
+
+
+def compute_h_value(diff_y, current_cycle_counter, time_periods_without_real_temp, metadata):
+    data = pandas.read_csv('probes.csv')
+
+    h_values = []
+
+    for idx, column_name in enumerate(metadata.get("output")):
+        if column_name not in LINEAR_REGRESSORS:
+            LINEAR_REGRESSORS[column_name] = {}
+            for cycle_counter in range(0, time_periods_without_real_temp):
+                data_current_cycle_counter = data.loc[data["current_cyle_counter"] == current_cycle_counter]
+                X = data_current_cycle_counter[f"{column_name}"].values.reshape(-1, 1)
+                Y = data_current_cycle_counter[f"h_{column_name}"].values.reshape(-1, 1)
+                linear_regressor = LinearRegression()
+                linear_regressor.fit(X, Y)
+                LINEAR_REGRESSORS[column_name][cycle_counter] = linear_regressor
+
+        Y_pred = LINEAR_REGRESSORS[column_name][current_cycle_counter].predict([[diff_y[0][idx]]])
+        h_values += [Y_pred]
+
+    return np.array(h_values).reshape(diff_y.shape)
+
+
 def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=None, figure_label="", produce_figure=True, oracle_object=None):
 
     if oracle_object is None:
@@ -298,11 +325,13 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
 
     plot_data = []
 
-    time_periods_without_real_temp = 8
+    time_periods_without_real_temp = 10
 
     resync_counter = 0
     current_cycle_counter = 0
     variables_that_travels = [var for var in metadata.get("variables") if var.get("become") is not None]
+
+    probes = []
 
     for (idx, (e, ts)) in enumerate(zip(y, tss)):
 
@@ -328,7 +357,7 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
 
         if current_cycle_counter == 0:
             h = np.zeros(len(metadata.get("output")))
-            # diff_z = np.zeros(len(metadata.get("output")))
+            h_bis = h
 
         servers_consumptions_copy = servers_consumptions.copy()
         if not resync and resync_counter > 0:
@@ -340,27 +369,37 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
                 servers_consumptions_copy[substituting_input_var_idx] = _y[0, substituting_output_var_idx]
 
             predicted_temp_reusing_past_pred = oracle_object.predict(servers_consumptions_copy)
+
+            # rescaled_temps = rescale_output(predicted_temp_reusing_past_pred, oracle_object.scaler, oracle_object.metadata.get("variables"))
+            # h_bis = compute_h_value(rescaled_temps, current_cycle_counter, time_periods_without_real_temp, metadata)
+            # h = h_bis
         else:
             predicted_temp_reusing_past_pred = predicted_temp
 
         if current_cycle_counter == 0:
             raw_prediction = oracle_object.predict(servers_consumptions)
-            # diff_y = predicted_temp_reusing_past_pred - raw_prediction  # CORRECT
-            h = raw_prediction - expected_temp
-            # diff_z = np.clip(diff_z, a_min=-1, a_max=1)
 
-            print(f"{resync_counter} => mean: {np.mean(h)}")
-        else:
-            # diff_y = (1.0 - 1.0 / time_periods_without_real_temp) * diff_y
-            # diff_z = (1.0 - 1.0 / time_periods_without_real_temp) * diff_z
-            pass
+            # h = raw_prediction - expected_temp
 
-        # if result_reusing_past_pred is not None:
-        #     print(f"{predicted_temp_reusing_past_pred - result_reusing_past_pred}")
+            # print(f"{resync_counter} => mean: {h[0][server_idx]}")
+
+        if idx > 0:
+            raw_prediction = oracle_object.predict(servers_consumptions)
+
+            # local_h = predicted_temp_reusing_past_pred - predicted_temp
+            # h = local_h
+            local_h = raw_prediction - expected_temp
+
+            diff_x = x[idx] - x[idx-1]
+            diff_y = (predicted_temp - unscale_output(np.array([y[idx - 1]]), oracle_object.scaler, oracle_object.metadata.get("variables"))).flatten()
+
+            probes += [np.hstack((y[idx], diff_y, diff_x, local_h.flatten(), [current_cycle_counter])).ravel()]
+
 
         result_reusing_past_pred = predicted_temp_reusing_past_pred
 
         mse = ((predicted_temp_reusing_past_pred - expected_temp) ** 2)
+        # h = np.zeros(len(metadata.get("output")))
 
         plot_data += [{
             "x": idx,
@@ -371,14 +410,22 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
             "rmse_mean": np.sqrt(mse).mean(axis=0),
             "rmse_raw": np.sqrt(mse),
             "temp_actual": expected_temp,
-            "temp_pred": predicted_temp,
-            # "temp_pred": predicted_temp_reusing_past_pred,
-            # "temp_pred_reusing_past_pred": predicted_temp_reusing_past_pred + diff_z,
-            # "temp_pred_reusing_past_pred": predicted_temp_reusing_past_pred - h,
-            "temp_pred_reusing_past_pred": predicted_temp_reusing_past_pred - h,
+            "temp_pred": predicted_temp - h_bis,
+            "temp_pred_reusing_past_pred": predicted_temp_reusing_past_pred - h_bis,
             "resync": resync,
             "ts_to_date": ts_to_date
         }]
+
+    # Export probes
+    variables_names = [o.get("name") for o in metadata.get("output_variables")]
+    variables_names += ["diff_" + o.get("name") for o in metadata.get("output_variables")]
+    variables_names += ["diff_" + o.get("name") for o in metadata.get("input_variables")]
+    variables_names += ["h_" + o.get("name") for o in metadata.get("output_variables")]
+    variables_names += ["current_cyle_counter"]
+
+    series_as_dataframe = pandas.DataFrame(probes, columns=variables_names)
+    series_as_dataframe.to_csv(f"probes.csv",
+                               columns=variables_names)
 
     # RMSE
     flatten_rmse = np.array([d["rmse_raw"] for d in plot_data]).flatten()
@@ -429,6 +476,36 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
         plt.ylabel('Back temperature of %s (deg. C)' % (server_id))
 
         plt.savefig((f"{tmp_figures_folder}/{figure_label}_prediction_power.pdf")
+                    .replace(":", " ")
+                    .replace("'", "")
+                    .replace("{", "")
+                    .replace("}", "")
+                    .replace(" ", "_")
+                    )
+
+        # Plotting auto-correlation and cross-correlations
+        fig, ax1 = plt.subplots(1, 1, sharex=True)
+
+        # y1_pandas_diff = pandas.DataFrame()
+        # ax1.acorr(y2_data, maxlags=9)
+
+        differential_dataframe = pandas.DataFrame(y1_data)\
+            .diff().rename(columns={0: "diff"}).abs()\
+            .rolling(5, win_type='triang').sum()\
+            .assign(y1_data=y1_data)\
+            .assign(y2_data=y2_data)
+
+        top_095_quantile = differential_dataframe.quantile(0.80)
+        filtered_dataframe = differential_dataframe.query(f"diff >= {top_095_quantile['diff']}")
+
+        # ax1.xcorr(y1_data, filtered_dataframey2_data, usevlines=True, maxlags=50, normed=True, lw=2)
+        ax1.xcorr(["y1_data"], filtered_dataframe["y1_data"], usevlines=True, maxlags=min(filtered_dataframe.size, 10), normed=True, lw=2)
+        ax1.grid(True)
+
+        # ax2.xcorr(y2_data, y3_data, usevlines=True, maxlags=50, normed=True, lw=2)
+        # ax2.grid(True)
+
+        plt.savefig((f"{tmp_figures_folder}/{figure_label}_auto_correlation_and_cross_correlation.pdf")
                     .replace(":", " ")
                     .replace("'", "")
                     .replace("{", "")

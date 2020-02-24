@@ -127,7 +127,9 @@
             raw_data: undefined,
             svgs: [],
             compare_with_column: "ecotype_43_temperature",
-            color_column: "ecotype_43_consumption"
+            color_column: "diff_ecotype_43_consumption"
+            {#compare_with_column: "h_ecotype_43_temperature",#}
+            {#color_column: "ecotype_43_temperature"#}
         },
         methods: {
             reload_available_columns: function () {
@@ -261,7 +263,7 @@
 
                     app.svgs.push(svg);
 
-                }, 500);
+                }, 200);
 
 
             },
@@ -270,7 +272,7 @@
             }
         },
         beforeMount: function () {
-            d3.csv("{{ url_for("static", filename="data/all_columns_export.csv") }}", function (data) {
+            d3.csv("{{ url_for("static", filename="data/probes.csv") }}", function (data) {
                 result = {}
                 // prepare result with columns
                 for (var column of data["columns"]) {

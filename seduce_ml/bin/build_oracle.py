@@ -22,7 +22,8 @@ def train(group_by,
           shuffle,
           server_id,
           use_scaler,
-          params):
+          params,
+          one_oracle_per_output):
     comparison_plot_data = []
 
     if not os.path.exists("data"):
@@ -90,7 +91,8 @@ def train(group_by,
                                     learning_method=learning_method,
                                     percentile=percentile,
                                     metadata=consumption_data_with_train_test_data.get("metadata"),
-                                    params=params)
+                                    params=params,
+                                    one_oracle_per_output=one_oracle_per_output)
 
         consumption_data_test = {**consumption_data}
         consumption_data_test["x"] = consumption_data_with_train_test_data.get("x_test")
@@ -218,6 +220,8 @@ def train(group_by,
         figure_label = f"validation_{learning_method}"
     elif learning_method == "proba":
         figure_label = f"validation_{learning_method}"
+    elif learning_method == "gradient_boost_regressor":
+        figure_label = f"validation_{learning_method}"
     else:
         raise Exception("Could not understand which learning method is used")
 
@@ -266,32 +270,23 @@ if __name__ == "__main__":
     # epoch_count = 3000
     epoch_count = 1000
     batch_size = 1000
-    group_by = 15
+    group_by = 30
     percentile = 80
 
     network_path = "last"
 
-    start_date = "2019-12-20T00:00:00.000Z"
-    end_date = "2020-01-25T00:00:00.000Z"
+    # start_date = "2019-12-20T00:00:00.000Z"
+    # end_date = "2020-01-25T00:00:00.000Z"
 
-    # start_date = "2019-10-23T00:00:00.000Z"
-    # end_date = "2019-10-25T00:00:00.000Z"
-    # end_date = "2019-09-11T00:00:00.000Z"
+    start_date = "2020-01-01T00:00:00.000Z"
+    end_date = "2020-02-02T00:00:00.000Z"
 
-    validation_start_date = "2020-01-25T00:00:00.000Z"
-    validation_end_date = "2020-01-30T01:00:00.000Z"
+    # validation_start_date = "2020-02-02T00:00:00.000Z"
+    # validation_end_date = "2020-02-07T01:00:00.000Z"
 
-    # validation_start_date = "2019-10-21T07:00:00.000Z"
-    # validation_end_date = "2019-10-23T18:00:00.000Z"
-
-    # validation_start_date = "2019-10-20T05:00:00.000Z"
-    # validation_end_date = "2019-10-21T05:00:00.000Z"
-
-    # validation_start_date = "2019-10-23T07:00:00.000Z"
-    # validation_end_date = "2019-10-20T00:00:00.000Z"
-    # validation_end_date = "2019-10-27T00:00:00.000Z"
-    # validation_end_date = "2019-10-22T00:00:00.000Z"
-    # validation_end_date = "2019-10-27T00:00:00.000Z"
+    validation_start_date = "2020-02-02T00:00:00.000Z"
+    validation_end_date = "2020-02-10T01:00:00.000Z"
+    # validation_end_date = "2020-02-02T01:00:00.000Z"
 
     tmp_figures_folder = "tmp/%s" % time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time()))
 
@@ -301,6 +296,7 @@ if __name__ == "__main__":
     server_id = "ecotype-43"
 
     use_scaler = True
+    one_oracle_per_output = True
     # use_scaler = False
 
     learning_method = "neural"
@@ -308,6 +304,7 @@ if __name__ == "__main__":
     # learning_method = "gaussian"
     # learning_method = "ltsm"
     # learning_method = "proba"
+    # learning_method = "gradient_boost_regressor"
 
     EPOCHS = [
         # 500,
@@ -316,7 +313,7 @@ if __name__ == "__main__":
         # 5000,
     ]
     NB_LAYERS = [
-        3,
+        1,
         # 2,
         # 4,
     ]
@@ -406,7 +403,8 @@ if __name__ == "__main__":
             shuffle,
             server_id,
             use_scaler,
-            params
+            params,
+            one_oracle_per_output
         )
 
         with open('oracle.pickle', 'wb') as oracle_object_file:

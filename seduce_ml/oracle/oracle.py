@@ -9,12 +9,16 @@ def create_and_train_oracle(
         learning_method,
         params=None,
         percentile=90,
-        metadata=None):
+        metadata=None,
+        one_oracle_per_output=True):
 
     from seduce_ml.learning.neural import NeuralNetworkOracle
     from seduce_ml.learning.knearest import KNearestOracle
     from seduce_ml.learning.gaussian import GaussianProcessOracle
     from seduce_ml.learning.proba import ProbaOracle
+    from seduce_ml.learning.gradient_boosting_regressor import GradientBoostRegressorOracle
+    from seduce_ml.learning.ltsm import LstmOracle
+    from seduce_ml.learning.one_oracle_per_output import OneOraclePerOutput
 
     if params is None:
         params = {}
@@ -24,7 +28,6 @@ def create_and_train_oracle(
             "input": [],
             "output": []
         }
-
 
     x_train = consumption_data.get("x_train")
     y_train = consumption_data.get("y_train")
@@ -43,13 +46,23 @@ def create_and_train_oracle(
 
     # Build the oracle
     if learning_method == "neural":
-        new_oracle = NeuralNetworkOracle(scaler, metadata, params)
+        oracle_class = NeuralNetworkOracle
     elif learning_method == "knearest":
-        new_oracle = KNearestOracle(scaler, metadata, params)
+        oracle_class = KNearestOracle
     elif learning_method == "gaussian":
-        new_oracle = GaussianProcessOracle(scaler, metadata, params)
+        oracle_class = GaussianProcessOracle
     elif learning_method == "proba":
-        new_oracle = ProbaOracle(scaler, metadata, params)
+        oracle_class = ProbaOracle
+    elif learning_method == "gradient_boost_regressor":
+        oracle_class = GradientBoostRegressorOracle
+    elif learning_method == "ltsm":
+        oracle_class = LstmOracle
+
+    if one_oracle_per_output:
+        new_oracle = OneOraclePerOutput(scaler, metadata, params, oracle_class)
+    else:
+        new_oracle = oracle_class(scaler, metadata, params)
+
 
     if new_oracle is None:
         raise Exception(f"Could not understand which Oracle to use (learning_method='{learning_method}')")

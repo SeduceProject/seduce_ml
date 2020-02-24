@@ -2,6 +2,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation
 from seduce_ml.oracle.oracle import Oracle
 from seduce_ml.data.scaling import *
+import copy
 
 
 def build_oracle(nb_inputs, nb_outputs, hidden_layers_count=1, neurons_per_hidden_layer=53, activation_function="tanh"):
@@ -35,7 +36,7 @@ def train_oracle(oracle, data, epochs, batch_size):
                # batch_size=batch_size)
 
     from keras.callbacks import EarlyStopping
-    overfitCallback = EarlyStopping(monitor='loss', min_delta=0.0000, patience=20)
+    overfitCallback = EarlyStopping(monitor='loss', min_delta=0.00001, patience=200)
     oracle.fit(data.get("x"),
                data.get("y"),
                epochs=100000000,

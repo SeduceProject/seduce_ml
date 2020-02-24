@@ -13,43 +13,44 @@ def get_additional_variables(server_id, learning_method):
     server_num = int(server_num_str)
 
     variables = [
-        {
-            "name": f"aggregate_cluster_consumption",
-            "sensor": f"hardware_cluster",
-            "aggregate": True,
-            # "shift": True,
-            # "shift_count": 1,
-        },
+        # {
+        #     "name": f"aggregate_cluster_consumption",
+        #     "sensor": f"hardware_cluster",
+        #     "aggregate": True,
+        #     # "shift": True,
+        #     # "shift_count": 1,
+        # },
         {
             "name": f"aggregate_cluster_consumption_diff",
             "sensor": f"hardware_cluster",
             "aggregate": True,
             # "shift": True,
             # "shift_count": 4,
-            "difference": True
+            # "difference": True
         },
     ]
 
     variables += [{
         "name": f"ecotype_{i}_consumption",
         "server_consumption": f"ecotype-{i}",
+        # "difference": True
     }
         for i in range(37, 49)]
 
-    variables += [{
-        "name": f"ecotype_{i}_consumption_diff",
-        "server_consumption": f"ecotype-{i}",
-        "difference": True,
-    }
-        for i in range(37, 49)]
+    # variables += [{
+    #     "name": f"ecotype_{i}_consumption_diff",
+    #     "server_consumption": f"ecotype-{i}",
+    #     "difference": True,
+    # }
+    #     for i in range(37, 49)]
 
-    variables += [{
-        "name": f"ecotype_{i}_past_1",
-        "server_consumption": f"ecotype-{i}",
-        "shift": True,
-        "shift_count": 1,
-    }
-        for i in range(37, 49)]
+    # variables += [{
+    #     "name": f"ecotype_{i}_past_1",
+    #     "server_consumption": f"ecotype-{i}",
+    #     "shift": True,
+    #     "shift_count": 1,
+    # }
+    #     for i in range(37, 49)]
 
     variables += [{
         "name": f"ecotype_{i}_temperature_past_1",
@@ -60,24 +61,30 @@ def get_additional_variables(server_id, learning_method):
     }
         for i in range(37, 49)]
 
+    # output_range = range(43, 44)
+    output_range = range(43, 45)
+    # output_range = range(37, 49)
     variables += [{
         "name": f"ecotype_{i}_temperature",
         "server_temperature": f"ecotype-{i}",
         "output": True,
+        # "difference": True,
         "become": f"ecotype_{i}_temperature_past_1",
-        "output_of": f"ecotype-{i}"
+        "output_of": f"ecotype-{i}",
+        # "rescale": lambda x: x*x
     }
-        for i in range(37, 49)]
+        for i in output_range
+    ]
 
-    variables += [{
-        "name": f"ecotype_{i}_temperature_diff",
-        "server_temperature": f"ecotype-{i}",
-        "output": True,
-        "difference": True,
-        # "become": f"ecotype_{i}_temperature_past_1",
-        # "output_of": f"ecotype-{i}"
-    }
-        for i in range(37, 49)]
+    # variables += [{
+    #     "name": f"ecotype_{i}_temperature_diff",
+    #     "server_temperature": f"ecotype-{i}",
+    #     "output": True,
+    #     "difference": True,
+    #     # "become": f"ecotype_{i}_temperature_past_1",
+    #     # "output_of": f"ecotype-{i}"
+    # }
+    #     for i in range(37, 49)]
 
     return variables
 
