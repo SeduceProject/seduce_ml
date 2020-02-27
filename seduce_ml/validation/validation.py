@@ -96,7 +96,7 @@ def validate_seduce_ml(consumption_data, server_id, use_scaler, scaler_path=None
         plt.xlabel('Time (hour)')
         plt.ylabel('Back temperature of %s (deg. C)' % (server_id))
 
-        plt.savefig((f"{tmp_figures_folder}/{figure_label}.pdf")
+        plt.savefig((f"{tmp_figures_folder}/{server_id}_{figure_label}.pdf")
                     .replace(":", " ")
                     .replace("'", "")
                     .replace("{", "")
@@ -475,7 +475,7 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
         plt.xlabel('Time (hour)')
         plt.ylabel('Back temperature of %s (deg. C)' % (server_id))
 
-        plt.savefig((f"{tmp_figures_folder}/{figure_label}_prediction_power.pdf")
+        plt.savefig((f"{tmp_figures_folder}/{server_id}_{figure_label}_prediction_power.pdf")
                     .replace(":", " ")
                     .replace("'", "")
                     .replace("{", "")
@@ -499,18 +499,19 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
         filtered_dataframe = differential_dataframe.query(f"diff >= {top_095_quantile['diff']}")
 
         # ax1.xcorr(y1_data, filtered_dataframey2_data, usevlines=True, maxlags=50, normed=True, lw=2)
-        ax1.xcorr(["y1_data"], filtered_dataframe["y1_data"], usevlines=True, maxlags=min(filtered_dataframe.size, 10), normed=True, lw=2)
+        ax1.xcorr(filtered_dataframe["y1_data"], filtered_dataframe["y1_data"], usevlines=True, maxlags=min(filtered_dataframe.size, 10), normed=True, lw=2)
         ax1.grid(True)
 
         # ax2.xcorr(y2_data, y3_data, usevlines=True, maxlags=50, normed=True, lw=2)
         # ax2.grid(True)
 
-        plt.savefig((f"{tmp_figures_folder}/{figure_label}_auto_correlation_and_cross_correlation.pdf")
+        plt.savefig((f"{tmp_figures_folder}/{server_id}_{figure_label}_auto_correlation_and_cross_correlation.pdf")
                     .replace(":", " ")
                     .replace("'", "")
                     .replace("{", "")
                     .replace("}", "")
                     .replace(" ", "_")
                     )
+        plt.close('all')
 
     return rmse, rmse_perc

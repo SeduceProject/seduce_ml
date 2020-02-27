@@ -6,6 +6,7 @@ import json
 import calendar
 import time
 from sklearn.preprocessing import MinMaxScaler
+import pandas
 
 
 def get_additional_variables(server_id, learning_method):
@@ -52,6 +53,21 @@ def get_additional_variables(server_id, learning_method):
     # }
     #     for i in range(37, 49)]
 
+    # output_range = [45, 44, 43, 46, 42, 41]
+    # output_range = [45, 44, 43, 46, 42, 41]
+    # output_range = [server_num]
+
+    # output_range = range(37, 49)
+    # output_range = range(43, 44)
+    # output_range = range(43, 45)
+
+    output_range = [server_num]
+    # if server_num > 37:
+    #     output_range += [server_num - 1]
+    # if server_num < 48:
+    #     output_range += [server_num + 1]
+    #     output_range += [server_num + 2]
+
     variables += [{
         "name": f"ecotype_{i}_temperature_past_1",
         "server_temperature": f"ecotype-{i}",
@@ -59,11 +75,9 @@ def get_additional_variables(server_id, learning_method):
         "shift_count": 1,
         # "output": True
     }
-        for i in range(37, 49)]
+        for i in output_range
+    ]
 
-    # output_range = range(43, 44)
-    output_range = range(43, 45)
-    # output_range = range(37, 49)
     variables += [{
         "name": f"ecotype_{i}_temperature",
         "server_temperature": f"ecotype-{i}",
@@ -128,6 +142,15 @@ def generate_real_consumption_data(start_date=None,
 
     # Remove duplicate variables
     variables = [v for (k, v) in dict([(f"{var}", var) for var in raw_variables]).items()]
+
+    # Create explicit link between linked variables
+    for var in variables:
+        if "become" in var:
+            [becoming_variable] = [v
+                                   for v in variables
+                                   if v.get("name") == var.get("become")]
+            if becoming_variable is not None:
+                becoming_variable["based_on"] = var.get("name")
 
     selected_servers_names_raw = sorted(selected_servers_names_raw, key=lambda s: int(s.split("-")[1]))
 
@@ -479,6 +502,8 @@ def generate_real_consumption_data(start_date=None,
     comon_result_properties = {
         "unscaled_x": x,
         "unscaled_y": y,
+        "unscaled_x_df": pandas.DataFrame(x, columns=metadata.get("input")),
+        "unscaled_y_df": pandas.DataFrame(y, columns=metadata.get("output")),
         "timestamps_labels": timestamps_labels,
         "tss": timestamps_labels,
         "data": data,
@@ -501,6 +526,8 @@ def generate_real_consumption_data(start_date=None,
     additional_result_properties = {
         "x": scaled_x,
         "y": scaled_y,
+        "x_df": pandas.DataFrame(scaled_x, columns=metadata.get("input")),
+        "y_df": pandas.DataFrame(scaled_y, columns=metadata.get("output")),
         "scaler": scaler
     }
 

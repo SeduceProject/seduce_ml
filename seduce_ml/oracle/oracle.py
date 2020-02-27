@@ -1,4 +1,3 @@
-import numpy as np
 import math
 from numpy.linalg import norm
 from seduce_ml.data.scaling import *
@@ -63,7 +62,6 @@ def create_and_train_oracle(
     else:
         new_oracle = oracle_class(scaler, metadata, params)
 
-
     if new_oracle is None:
         raise Exception(f"Could not understand which Oracle to use (learning_method='{learning_method}')")
 
@@ -124,9 +122,6 @@ def create_and_train_oracle(
     rmse = flatten_rmse.mean()
     rmse_perc = flatten_rmse[flatten_rmse > np.percentile(flatten_rmse, percentile)].mean()
 
-    # Create an oracle object
-    # new_oracle = Oracle(oracle, scaler, metadata, learning_method, consumption_data)
-
     return new_oracle, plot_data, rmse_perc, rmse, score
 
 
@@ -141,9 +136,6 @@ class Oracle(object):
 
     def get_state(self):
         return self.state
-
-    # def describe_params(self):
-    #     return self.metadata
 
     def train(self, data):
         raise Exception("Not yet implemented!")

@@ -187,7 +187,7 @@ def train(group_by,
     plt.ylabel('Back temperature of %s (deg. C)' % server_id)
     plt.title("%s" % param_label)
 
-    plt.savefig(("%s/training_%s.pdf" % (tmp_figures_folder, param_label))
+    plt.savefig(f"{tmp_figures_folder}/{server_id}_training_{param_label}.pdf"
                 .replace(":", " ")
                 .replace("'", "")
                 .replace("{", "")
@@ -279,13 +279,13 @@ if __name__ == "__main__":
     # end_date = "2020-01-25T00:00:00.000Z"
 
     start_date = "2020-01-01T00:00:00.000Z"
-    end_date = "2020-02-02T00:00:00.000Z"
+    end_date = "2020-02-18T00:00:00.000Z"
 
     # validation_start_date = "2020-02-02T00:00:00.000Z"
     # validation_end_date = "2020-02-07T01:00:00.000Z"
 
-    validation_start_date = "2020-02-02T00:00:00.000Z"
-    validation_end_date = "2020-02-10T01:00:00.000Z"
+    validation_start_date = "2020-02-18T00:00:00.000Z"
+    validation_end_date = "2020-02-25T17:00:00.000Z"
     # validation_end_date = "2020-02-02T01:00:00.000Z"
 
     tmp_figures_folder = "tmp/%s" % time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time()))
@@ -293,10 +293,10 @@ if __name__ == "__main__":
     shuffle = True
     # shuffle = False
 
-    server_id = "ecotype-43"
+    # server_id = "ecotype-41"
 
     use_scaler = True
-    one_oracle_per_output = True
+    # one_oracle_per_output = True
     # use_scaler = False
 
     learning_method = "neural"
@@ -363,17 +363,17 @@ if __name__ == "__main__":
     if not os.path.exists(tmp_figures_folder):
         os.makedirs(tmp_figures_folder)
 
-    investigate_correlations(
-        start_date,
-        end_date,
-        True,
-        f"data/data_{group_by}m.json",
-        group_by,
-        None,
-        True,
-        [f"ecotype-{i}" for i in range(37, 49)],
-        tmp_figures_folder
-    )
+    # investigate_correlations(
+    #     start_date,
+    #     end_date,
+    #     True,
+    #     f"data/data_{group_by}m.json",
+    #     group_by,
+    #     None,
+    #     True,
+    #     [f"ecotype-{i}" for i in range(37, 49)],
+    #     tmp_figures_folder
+    # )
 
     for PARAMS in TEST_PARAMS:
 
@@ -392,27 +392,47 @@ if __name__ == "__main__":
         else:
             params = {}
 
-        oracle_object = train(
-            group_by,
-            percentile,
-            start_date,
-            end_date,
-            validation_start_date,
-            validation_end_date,
-            tmp_figures_folder,
-            shuffle,
-            server_id,
-            use_scaler,
-            params,
-            one_oracle_per_output
-        )
+        server_ids = [f"ecotype-{i}"
+                      for i in range(37, 49)]
+
+        oracle_objects = []
+        for server_id in server_ids:
+            oracle_object = train(
+                group_by,
+                percentile,
+                start_date,
+                end_date,
+                validation_start_date,
+                validation_end_date,
+                tmp_figures_folder,
+                shuffle,
+                server_id,
+                use_scaler,
+                params,
+                False,
+            )
+            oracle_objects += [oracle_object]
+
+        # Create an aggregate of all oracle objects
+        from seduce_ml.learning.one_oracle_per_output import SimpleOneOraclePerOutput
+        aggregateOracle = SimpleOneOraclePerOutput(oracle_objects)
 
         with open('oracle.pickle', 'wb') as oracle_object_file:
-            dill.dump(oracle_object, oracle_object_file)
+            dill.dump(aggregateOracle, oracle_object_file)
+
+        # Check that the model is working
+        last_data = generate_real_consumption_data(start_date,
+                                                   end_date,
+                                                   data_file_path=f"data/data_{group_by}m.json",
+                                                   group_by=group_by,
+                                                   use_scaler=use_scaler,
+                                                   server_ids=server_ids,
+                                                   learning_method=learning_method)
+        last_row = last_data.get("unscaled_x_df").iloc[[-1]]
 
         with open('oracle.pickle', 'rb') as oracle_object_file:
-            oracle_object = dill.load(oracle_object_file)
-            prediction = oracle_object.predict(oracle_object.data.get("unscaled_x")[0])
+            aggregateOracle = dill.load(oracle_object_file)
+            prediction = aggregateOracle.predict(last_row)
             print(prediction)
 
     sys.exit(0)
