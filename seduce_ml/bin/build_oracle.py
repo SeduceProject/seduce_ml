@@ -10,10 +10,7 @@ from seduce_ml.data.scaling import *
 import yaml
 
 
-def train(params,
-          tmp_figures_folder,
-          server_id,
-          one_oracle_per_output):
+def train(params, tmp_figures_folder, server_id, one_oracle_per_output):
     comparison_plot_data = []
 
     if not os.path.exists("data"):
@@ -43,8 +40,7 @@ def train(params,
         create_and_train_oracle(consumption_data,
                                 learning_method=learning_method,
                                 metadata=consumption_data.metadata,
-                                params=params,
-                                one_oracle_per_output=one_oracle_per_output)
+                                params=params)
 
     result = evaluate_prediction_power(
         consumption_data,

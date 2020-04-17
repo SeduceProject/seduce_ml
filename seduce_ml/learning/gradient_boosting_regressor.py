@@ -2,8 +2,6 @@ from sklearn.ensemble import GradientBoostingRegressor
 from seduce_ml.oracle.oracle import Oracle
 from seduce_ml.data.scaling import *
 
-NB_NEIGHBOURS = 5
-
 
 class GradientBoostRegressorOracle(Oracle):
 

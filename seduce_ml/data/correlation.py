@@ -1,9 +1,6 @@
-import pandas as pd
-from seduce_ml.data.seduce_data_loader import generate_real_consumption_data
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
 import pandas
+from seduce_ml.data.seduce_data_loader import generate_real_consumption_data
 
 
 def investigate_correlations(start_date=None,

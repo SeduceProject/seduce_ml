@@ -1,8 +1,7 @@
+import uuid
+import pandas
 from autogluon import TabularPrediction as task
 from seduce_ml.oracle.oracle import Oracle
-import pandas
-import numpy as np
-import uuid
 
 
 class AutoGluonProcessOracle(Oracle):
@@ -49,4 +48,5 @@ class AutoGluonProcessOracle(Oracle):
             return self._predict_nsteps_in_future(original_data_arrays, data_arrays, nsteps, n + 1)
 
     def predict_all_nsteps_in_future(self, rows, nsteps):
+        rows = self._clean_past_output_values(rows)
         return self._predict_nsteps_in_future(rows, rows.copy(), nsteps=nsteps)

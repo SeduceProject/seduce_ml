@@ -2,7 +2,6 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation
 from seduce_ml.oracle.oracle import Oracle
 from seduce_ml.data.scaling import *
-import copy
 
 
 def build_oracle(nb_inputs, nb_outputs, hidden_layers_count=1, neurons_per_hidden_layer=53, activation_function="tanh"):

@@ -1,14 +1,11 @@
-import math
 from seduce_ml.data.scaling import *
-from seduce_ml.data.seduce_data_loader import generate_real_consumption_data
 
 
 def create_and_train_oracle(
         consumption_data,
         learning_method,
         params=None,
-        metadata=None,
-        one_oracle_per_output=True):
+        metadata=None):
 
     from seduce_ml.learning.neural import NeuralNetworkOracle
     from seduce_ml.learning.knearest import KNearestOracle
@@ -26,15 +23,12 @@ def create_and_train_oracle(
             "output": []
         }
 
-    x_train = consumption_data.scaled_train_df[consumption_data.metadata.get("input")].to_numpy()
-    y_train = consumption_data.scaled_train_df[consumption_data.metadata.get("output")].to_numpy()
     unscaled_x_train = consumption_data.unscaled_train_df[consumption_data.metadata.get("input")].to_numpy()
     unscaled_y_train = consumption_data.unscaled_train_df[consumption_data.metadata.get("output")].to_numpy()
     scaler = consumption_data.scaler
 
     variables = metadata["input"] + metadata["output"]
 
-    plot_data = []
     score = -1
 
     # Create an oracle object
@@ -127,23 +121,20 @@ class Oracle(object):
              for unscaled_input_values in unscaled_input_values_array]
         ).reshape(row_count, len(self.metadata.get("output")))
 
+    def _clean_past_output_values(self, rows):
+        result = rows.copy()
+        variables_that_travels = [var for var in self.metadata.get("variables") if var.get("become") is not None]
+        # Clear previous values
+        for var in variables_that_travels:
+            substituting_input_var_idx = self.metadata.get("input").index(var.get("become"))
+            rows[:, 1:, substituting_input_var_idx] = -1
+        return result
+
     def predict_all_nsteps_in_future(self, rows, nsteps):
         row_count = rows.shape[0]
+        rows = self._clean_past_output_values(rows)
+
         return np.array(
             [self.predict_nsteps_in_future(row, row.copy(), nsteps)
              for row in rows]
         ).reshape(row_count, len(self.metadata.get("output")))
-
-    def load_last_data(self):
-        # Prepare arguments
-        start_date = "2020-02-01T00:00:00.000Z"
-
-        # Check that the model is working
-        last_data = generate_real_consumption_data(start_date,
-                                                   end_date,
-                                                   data_file_path=f"data/data_{group_by}m.json",
-                                                   group_by=group_by,
-                                                   use_scaler=use_scaler,
-                                                   server_ids=server_ids,
-                                                   learning_method=learning_method)
-        last_row = last_data.get("unscaled_x_df").iloc[[-1]]

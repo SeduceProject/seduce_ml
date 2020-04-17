@@ -16,3 +16,5 @@ configuration:
     layers_count: 1
     neurons_per_layer: 12
     activation_function: "tanh"
+  knearest:
+    neighbours_count: 5

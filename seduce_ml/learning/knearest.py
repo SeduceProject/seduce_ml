@@ -1,8 +1,5 @@
-import numpy as np
 from seduce_ml.oracle.oracle import Oracle
 from seduce_ml.data.scaling import *
-
-NB_NEIGHBOURS = 5
 
 
 class KNearestOracle(Oracle):
@@ -29,7 +26,7 @@ class KNearestOracle(Oracle):
                                 zip(self._distance(rescaled_x_input, x_train), x_train, y_train, tss_train)]
         close_points = [t4 for t4 in points_with_distance]
         sorted_points = sorted(close_points, key=lambda t4: t4[0])
-        selected_points = [t4[-2] for t4 in sorted_points[0:NB_NEIGHBOURS]]
+        selected_points = [t4[-2] for t4 in sorted_points[0:self.params.get("configuration").get("knearest").get("neighbours_count")]]
         result = np.mean(selected_points, axis=0).reshape(1, len(self.metadata.get("output")))
         unscaled_result = unscale_output(result, self.scaler, self.metadata.get("variables"))
         return unscaled_result

@@ -81,7 +81,6 @@ def generate_real_consumption_data(start_date=None,
     servers_names_raw = [f"ecotype-{i}" for i in range(1, 49)]
     servers_names_raw = sorted(servers_names_raw, key=lambda s: int(s.split("-")[1]))
 
-    # selected_servers_names_raw = [f"ecotype-{i}" for i in range(37, 49)]
     if server_id is not None and server_ids is None:
         selected_servers_names_raw = [server_id]
     elif server_id is None and server_ids is not None:
@@ -106,7 +105,6 @@ def generate_real_consumption_data(start_date=None,
     selected_servers_names_raw = sorted(selected_servers_names_raw, key=lambda s: int(s.split("-")[1]))
 
     servers_names = seq(servers_names_raw)
-    selected_servers_names = seq(selected_servers_names_raw)
 
     reload_data = False
     # reload_data = True
