@@ -1,6 +1,3 @@
-import numpy as np
-from sklearn.metrics import mean_squared_error
-from sklearn.datasets import make_friedman1
 from sklearn.ensemble import GradientBoostingRegressor
 from seduce_ml.oracle.oracle import Oracle
 from seduce_ml.data.scaling import *
@@ -13,13 +10,13 @@ class GradientBoostRegressorOracle(Oracle):
     def __init__(self, scaler, metadata, params):
         Oracle.__init__(self, scaler, metadata, params)
 
-    def train(self, data):
+    def train(self, data, params):
         self.data = data
 
         self.ests = []
 
-        x_train = self.data.get("x_train")
-        y_train = self.data.get("y_train")
+        x_train = data.scaled_train_df[data.metadata.get("input")].to_numpy()
+        y_train = data.scaled_train_df[data.metadata.get("output")].to_numpy()
 
         for idx, output_variable_name in enumerate(self.metadata.get("output")):
 

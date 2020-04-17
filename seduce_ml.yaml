@@ -1,0 +1,18 @@
+seduce_ml:
+  learning_method: neural
+#  learning_method: knearest
+  group_by: 30
+  network_path: "last"
+  start_date: "2020-02-01T00:00:00.000Z"
+  end_date: "2020-03-01T00:00:00.000Z"
+  validation_start_date: "2020-03-15T00:00:00.000Z"
+  validation_end_date: "2020-03-31T17:00:00.000Z"
+  shuffle: true
+  use_scaler: true
+configuration:
+  neural:
+    epoch_count: 3000
+    batch_size: 1000
+    layers_count: 1
+    neurons_per_layer: 12
+    activation_function: "tanh"

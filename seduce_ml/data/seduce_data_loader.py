@@ -7,6 +7,9 @@ import calendar
 import time
 from sklearn.preprocessing import MinMaxScaler
 import pandas
+from sklearn.model_selection import train_test_split
+
+IGNORE_PATTERNS = ["_I_AC", "_P_AC", "b232", "net_", "apparent", "reactive", "battery", "active", "weather"]
 
 
 def get_additional_variables(server_id, learning_method):
@@ -14,66 +17,26 @@ def get_additional_variables(server_id, learning_method):
     server_num = int(server_num_str)
 
     variables = [
-        # {
-        #     "name": f"aggregate_cluster_consumption",
-        #     "sensor": f"hardware_cluster",
-        #     "aggregate": True,
-        #     # "shift": True,
-        #     # "shift_count": 1,
-        # },
         {
-            "name": f"aggregate_cluster_consumption_diff",
+            "name": f"aggregate_cluster_consumption",
             "sensor": f"hardware_cluster",
             "aggregate": True,
-            # "shift": True,
-            # "shift_count": 4,
-            # "difference": True
         },
     ]
 
     variables += [{
         "name": f"ecotype_{i}_consumption",
         "server_consumption": f"ecotype-{i}",
-        # "difference": True
     }
         for i in range(37, 49)]
 
-    # variables += [{
-    #     "name": f"ecotype_{i}_consumption_diff",
-    #     "server_consumption": f"ecotype-{i}",
-    #     "difference": True,
-    # }
-    #     for i in range(37, 49)]
-
-    # variables += [{
-    #     "name": f"ecotype_{i}_past_1",
-    #     "server_consumption": f"ecotype-{i}",
-    #     "shift": True,
-    #     "shift_count": 1,
-    # }
-    #     for i in range(37, 49)]
-
-    # output_range = [45, 44, 43, 46, 42, 41]
-    # output_range = [45, 44, 43, 46, 42, 41]
-    # output_range = [server_num]
-
-    # output_range = range(37, 49)
-    # output_range = range(43, 44)
-    # output_range = range(43, 45)
-
     output_range = [server_num]
-    # if server_num > 37:
-    #     output_range += [server_num - 1]
-    # if server_num < 48:
-    #     output_range += [server_num + 1]
-    #     output_range += [server_num + 2]
 
     variables += [{
         "name": f"ecotype_{i}_temperature_past_1",
         "server_temperature": f"ecotype-{i}",
         "shift": True,
         "shift_count": 1,
-        # "output": True
     }
         for i in output_range
     ]
@@ -82,23 +45,11 @@ def get_additional_variables(server_id, learning_method):
         "name": f"ecotype_{i}_temperature",
         "server_temperature": f"ecotype-{i}",
         "output": True,
-        # "difference": True,
         "become": f"ecotype_{i}_temperature_past_1",
         "output_of": f"ecotype-{i}",
-        # "rescale": lambda x: x*x
     }
         for i in output_range
     ]
-
-    # variables += [{
-    #     "name": f"ecotype_{i}_temperature_diff",
-    #     "server_temperature": f"ecotype-{i}",
-    #     "output": True,
-    #     "difference": True,
-    #     # "become": f"ecotype_{i}_temperature_past_1",
-    #     # "output_of": f"ecotype-{i}"
-    # }
-    #     for i in range(37, 49)]
 
     return variables
 
@@ -197,7 +148,7 @@ def generate_real_consumption_data(start_date=None,
             subrequest_start = i
             subrequest_end = min(subrequest_start + 24 * 3600, end_epoch)
 
-            _dump_data_url = f"""https://dashboard.seduce.fr/dump/all/aggregated?start_date={ subrequest_start }s&end_date={ subrequest_end }s&group_by={ group_by_seconds }"""
+            _dump_data_url = f"""https://dashboard.seduce.fr/dump/all/aggregated?start_date={subrequest_start}s&end_date={subrequest_end}s&group_by={group_by_seconds}"""
 
             try:
                 _dump_data = requests.get(_dump_data_url).json()
@@ -223,6 +174,16 @@ def generate_real_consumption_data(start_date=None,
                 continue
 
             for sensor_name, sensor_data in _dump_data["sensors_data"].items():
+
+                ignore_sensor = False
+                for ignore_pattern in IGNORE_PATTERNS:
+                    if ignore_pattern in sensor_name:
+                        # print(f"ignore {sensor_name}")
+                        ignore_sensor = True
+
+                if ignore_sensor:
+                    continue
+
                 if sensor_name not in dump_data["sensors_data"]:
                     dump_data["sensors_data"][sensor_name] = {
                         "means": [],
@@ -459,6 +420,9 @@ def generate_real_consumption_data(start_date=None,
                 raise Exception(f"Timestamps of server {server_name} don't match timestamps of other servers")
         timestamps_labels = data["consumptions"][server_name]["timestamps"]
 
+    timestamps = [pandas.Timestamp(ts_label)
+                  for ts_label in timestamps_labels]
+
     metadata = {
         "input": [],
         "output": [],
@@ -500,17 +464,15 @@ def generate_real_consumption_data(start_date=None,
     shape = (input_columns_count, output_columns_count)
 
     comon_result_properties = {
-        "unscaled_x": x,
-        "unscaled_y": y,
-        "unscaled_x_df": pandas.DataFrame(x, columns=metadata.get("input")),
-        "unscaled_y_df": pandas.DataFrame(y, columns=metadata.get("output")),
-        "timestamps_labels": timestamps_labels,
-        "tss": timestamps_labels,
-        "data": data,
-        "shape": shape,
-        "selected_servers_names_raw": selected_servers_names_raw,
-        "servers_names_raw": selected_servers_names_raw,
-        "metadata": metadata
+        # "timestamps_labels": timestamps_labels,
+        # "tss": timestamps_labels,
+        # "data": data,
+        # "shape": shape,
+        # "selected_servers_names_raw": selected_servers_names_raw,
+        "servers_hostnames": selected_servers_names_raw,
+        "metadata": metadata,
+        "input_shape": x.shape,
+        "output_shape": y.shape,
     }
 
     # Scale values
@@ -524,13 +486,61 @@ def generate_real_consumption_data(start_date=None,
     scaled_x, scaled_y = scaled_values[:, :input_columns_count], scaled_values[:, -output_columns_count:]
 
     additional_result_properties = {
-        "x": scaled_x,
-        "y": scaled_y,
-        "x_df": pandas.DataFrame(scaled_x, columns=metadata.get("input")),
-        "y_df": pandas.DataFrame(scaled_y, columns=metadata.get("output")),
         "scaler": scaler
     }
 
-    result = {**comon_result_properties, **additional_result_properties}
+    # Create dataframes with all data
+    complete_data_scaled = pandas.concat([pandas.DataFrame(scaled_x, columns=metadata.get("input")),
+                                          pandas.DataFrame(scaled_y, columns=metadata.get("output")),
+                                          pandas.DataFrame(timestamps, columns=["timestamp"])],
+                                         axis=1)
+    complete_data_unscaled = pandas.concat([pandas.DataFrame(x, columns=metadata.get("input")),
+                                            pandas.DataFrame(y, columns=metadata.get("output")),
+                                            pandas.DataFrame(timestamps, columns=["timestamp"])],
+                                           axis=1)
 
-    return result
+    # Export the complete dataframe to csv
+    complete_data_scaled.to_csv("complete_data_scaled.csv")
+    complete_data_unscaled.to_csv("complete_data_unscaled.csv")
+
+    csv_export_properties = {
+        "complete_data_scaled_path": "complete_data_scaled.csv",
+        "complete_data_unscaled_path": "complete_data_unscaled.csv"
+    }
+
+    result = {**comon_result_properties, **additional_result_properties, **csv_export_properties}
+
+    new_result = DataResult(**result)
+
+    return new_result
+
+
+class DataResult(object):
+
+    def __init__(self, servers_hostnames, metadata, input_shape, output_shape, scaler, complete_data_scaled_path, complete_data_unscaled_path):
+        self.servers_hostnames = servers_hostnames
+        self.metadata = metadata
+        self.input_shape = input_shape
+        self.output_shape = output_shape
+        self.complete_data_scaled_path = complete_data_scaled_path
+        self.complete_data_unscaled_path = complete_data_unscaled_path
+        self.scaler = scaler
+
+        self.state = "not_loaded"
+
+    def load_data(self):
+        self.scaled_df = pandas.read_csv(self.complete_data_scaled_path, parse_dates=["timestamp"])
+        self.unscaled_df = pandas.read_csv(self.complete_data_unscaled_path, parse_dates=["timestamp"])
+        self.state = "loaded"
+
+    def split_train_and_test_data(self, train_proportion=0.80, shuffle=True):
+        scaled_train, scaled_test, unscaled_train, unscaled_test = \
+            train_test_split(self.scaled_df,
+                             self.unscaled_df,
+                             test_size=1 - train_proportion,
+                             shuffle=shuffle)
+
+        self.scaled_train_df = scaled_train
+        self.scaled_test_df = scaled_test
+        self.unscaled_train_df = unscaled_train
+        self.unscaled_test_df = unscaled_test

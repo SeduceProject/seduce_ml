@@ -12,16 +12,16 @@ class GaussianProcessOracle(Oracle):
     def __init__(self, scaler, metadata, params):
         Oracle.__init__(self, scaler, metadata, params)
 
-    def train(self, data):
+    def train(self, data, params):
         self.data = data
 
-        x_train = self.data.get("x_train")[0: SUBSAMPLES]
-        y_train = self.data.get("y_train")[0: SUBSAMPLES]
-        tss_train = self.data.get("tss_train")[0: SUBSAMPLES]
+        x_train = self.data.scaled_train_df[self.data.metadata.get("input")].to_numpy()
+        y_train = self.data.scaled_train_df[self.data.metadata.get("output")].to_numpy()
+
+        # x_train = x_train[0: SUBSAMPLES]
+        # y_train = y_train[0: SUBSAMPLES]
 
         # Instantiate a Gaussian Process model
-        param = [5 for x in range(0, x_train.shape[1])]
-
         # kernel = RBF(param, (1e-2, 1e2))
         # kernel = DotProduct() + WhiteKernel()
         kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RBF(10, (1e-3, 1e3))

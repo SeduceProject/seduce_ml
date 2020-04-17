@@ -10,7 +10,7 @@ class KNearestOracle(Oracle):
     def __init__(self, scaler, metadata, params):
         Oracle.__init__(self, scaler, metadata, params)
 
-    def train(self, data):
+    def train(self, data, params):
         self.data = data
         self.state = "TRAINED"
 
@@ -21,9 +21,9 @@ class KNearestOracle(Oracle):
 
         rescaled_x_input = rescale_input(x_input.reshape(1, len(self.metadata.get("input"))), self.scaler, self.metadata.get("variables"))
 
-        x_train = self.data.get("x_train")
-        y_train = self.data.get("y_train")
-        tss_train = self.data.get("tss_train")
+        x_train = self.data.scaled_train_df[self.data.metadata.get("input")].to_numpy()
+        y_train = self.data.scaled_train_df[self.data.metadata.get("output")].to_numpy()
+        tss_train = self.data.scaled_df["timestamp"].to_numpy()
 
         points_with_distance = [t4 for t4 in
                                 zip(self._distance(rescaled_x_input, x_train), x_train, y_train, tss_train)]

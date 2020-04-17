@@ -14,6 +14,9 @@ notebooks/.ipynb_checkpoints
 tmp.zip
 oracle.pickle
 *.csv
+agModels-predictClass
+catboost_info
+dask-worker-space
 
 ## INTELLIJ / PyCharm GITIGNORE
 

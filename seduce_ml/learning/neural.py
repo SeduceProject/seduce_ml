@@ -53,26 +53,36 @@ class NeuralNetworkOracle(Oracle):
     def __init__(self, scaler, metadata, params):
         Oracle.__init__(self, scaler, metadata, params)
 
-    def train(self, data):
+    def train(self, data, params):
         self.data = data
+
+        nb_layers = params.get("configuration").get("neural").get("layers_count")
+        neurons_per_layers = params.get("configuration").get("neural").get("neurons_per_layer")
+        activation_function = params.get("configuration").get("neural").get("activation_function")
+
         oracle = build_oracle(nb_inputs=len(self.metadata.get("input_variables")),
                               nb_outputs=len(self.metadata.get("output_variables")),
-                              hidden_layers_count=self.params.get("nb_layers"),
-                              neurons_per_hidden_layer=self.params.get("neurons_per_layers"),
-                              activation_function=self.params.get("activation_function"))
+                              hidden_layers_count=nb_layers,
+                              neurons_per_hidden_layer=neurons_per_layers,
+                              activation_function=activation_function)
+
+        x_train = data.scaled_train_df[data.metadata.get("input")].to_numpy()
+        y_train = data.scaled_train_df[data.metadata.get("output")].to_numpy()
+        x_test = data.scaled_test_df[data.metadata.get("input")].to_numpy()
+        y_test = data.scaled_test_df[data.metadata.get("output")].to_numpy()
 
         train_oracle(oracle,
                      {
-                         "x": data.get("x_train"),
-                         "y": data.get("y_train")
+                         "x": x_train,
+                         "y": y_train
                      },
-                     data.get("epoch"),
-                     len(data.get("y_train")))
+                     params.get("epoch"),
+                     data.scaled_train_df.shape[0])
 
         self.oracle = oracle
 
         # Evaluate the neural network
-        score = oracle.evaluate(data.get("x_test"), data.get("y_test"), batch_size=data.get("batch_size"))
+        score = oracle.evaluate(x_test, y_test, batch_size=params.get("batch_size"))
 
         self.state = "TRAINED"
 
