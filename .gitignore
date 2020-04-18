@@ -20,7 +20,6 @@ dask-worker-space
 tests_data
 
 tests/tests_data
-tests/mock_data
 
 ## INTELLIJ / PyCharm GITIGNORE
 
