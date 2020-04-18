@@ -25,7 +25,7 @@ def train(params, tmp_figures_folder, server_id, one_oracle_per_output):
     consumption_data = \
         generate_real_consumption_data(params.get("seduce_ml").get("start_date"),
                                        params.get("seduce_ml").get("end_date"),
-                                       data_folder_path=f"data/",
+                                       data_folder_path=f"data",
                                        group_by=params.get('seduce_ml').get('group_by'),
                                        use_scaler=params.get("seduce_ml").get("use_scaler"),
                                        server_id=server_id,
@@ -113,7 +113,8 @@ def train(params, tmp_figures_folder, server_id, one_oracle_per_output):
     consumption_data_validation =\
         generate_real_consumption_data(params.get('seduce_ml').get('validation_start_date'),
                                        params.get('seduce_ml').get('validation_end_date'),
-                                       data_folder_path=f"data/",
+                                       data_folder_path=f"data",
+                                       data_file_name="data_validation.json",
                                        group_by=params.get('seduce_ml').get('group_by'),
                                        scaler=consumption_data.scaler,
                                        use_scaler=params.get('seduce_ml').get('use_scaler'),
@@ -228,7 +229,8 @@ if __name__ == "__main__":
         # Check that the model is working
         last_data = generate_real_consumption_data(PARAMS.get("seduce_ml").get("start_date"),
                                                    PARAMS.get("seduce_ml").get("end_date"),
-                                                   data_folder_path=f"data/",
+                                                   data_folder_path=f"data",
+                                                   data_file_name="data_validation_final.json",
                                                    group_by=PARAMS.get("seduce_ml").get("group_by"),
                                                    use_scaler=PARAMS.get("seduce_ml").get("use_scaler"),
                                                    server_ids=server_ids,

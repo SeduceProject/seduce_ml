@@ -66,6 +66,7 @@ def get_additional_variables_multiple_servers(server_ids, learning_method):
 def generate_real_consumption_data(start_date=None,
                                    end_date=None,
                                    show_progress=True,
+                                   data_file_name=None,
                                    data_folder_path=None,
                                    group_by=60,
                                    scaler=None,
@@ -77,7 +78,10 @@ def generate_real_consumption_data(start_date=None,
     if data_folder_path is None:
         raise Exception("Please specify 'data_folder_path' parameter")
 
-    data_file_path = f"{ data_folder_path }/data_{ group_by }m.json"
+    if data_file_name is None:
+        data_file_name = f"data_{ group_by }m.json"
+
+    data_file_path = f"{ data_folder_path }/{ data_file_name }"
 
     seduce_infrastructure_tree = requests.get("https://api.seduce.fr/infrastructure/description/tree").json()
 
