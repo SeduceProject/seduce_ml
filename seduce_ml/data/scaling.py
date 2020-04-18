@@ -11,7 +11,7 @@ def unscale_input(x, scaler, variables):
     if len(x.shape) != 2:
         raise Exception("Expecting an 2D array")
 
-    row_count, columns_count = x.shape
+    _, columns_count = x.shape
     additional_columns_count = len(variables) - columns_count
 
     augmented_array = np.insert(x, [columns_count] * additional_columns_count, -10, axis=1)
