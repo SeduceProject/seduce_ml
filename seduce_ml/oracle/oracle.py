@@ -100,6 +100,11 @@ class Oracle(object):
         raise Exception("Not yet implemented!")
 
     def predict_nsteps_in_future(self, original_data, data, nsteps, n=0):
+
+        if n == 0:
+            original_data = self._clean_past_output_values(original_data)
+            data = self._clean_past_output_values(data)
+
         variables_that_travels = [var for var in self.metadata.get("variables") if var.get("become") is not None]
         step_result = self.predict(data[n])
 
@@ -127,7 +132,11 @@ class Oracle(object):
         # Clear previous values
         for var in variables_that_travels:
             substituting_input_var_idx = self.metadata.get("input").index(var.get("become"))
-            rows[:, 1:, substituting_input_var_idx] = -1
+
+            if len(rows.shape) == 3:
+                result[:, 1:, substituting_input_var_idx] = -1
+            else:
+                result[1:, substituting_input_var_idx] = -1
         return result
 
     def predict_all_nsteps_in_future(self, rows, nsteps):

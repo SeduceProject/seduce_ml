@@ -1,2 +1,2 @@
-DATA_TEST_FOLDER = "data"
-FIGURE_TEST_FOLDER = "data"
+DATA_TEST_FOLDER = "tests_data"
+FIGURE_TEST_FOLDER = "tests_data"

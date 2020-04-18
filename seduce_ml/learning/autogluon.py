@@ -33,6 +33,11 @@ class AutoGluonProcessOracle(Oracle):
         return result
 
     def _predict_nsteps_in_future(self, original_data_arrays, data_arrays, nsteps, n=0):
+
+        if n == 0:
+            original_data = self._clean_past_output_values(original_data_arrays)
+            data = self._clean_past_output_values(data_arrays)
+
         variables_that_travels = [var for var in self.metadata.get("variables") if var.get("become") is not None]
         step_result = self.predict_all(data_arrays[:, n, :])
 

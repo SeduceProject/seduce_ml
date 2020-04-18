@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import unittest
+from tests.oracle import *
+from tests.data_loader import *
 from tests.validation import *
-from tests.prediction_60m import *
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,6 +3,7 @@ import datetime
 from seduce_ml.oracle.oracle import Oracle
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
+from seduce_ml.data.data_from_api import DataResult
 
 FAKE_VARIABLES = [
     {
@@ -53,9 +54,9 @@ def generate_fake_data():
 
     for i in range(0, 100):
         date = now + datetime.timedelta(minutes=1)
-        timestamp_label = date.strftime("%Y-%s-%dT")
-        x = i
-        y = i + 1
+        timestamp_label = date
+        x = float(i)
+        y = float(i) + 1
         z = x + y
         inputs += [[x, y]]
         outputs += [z]
@@ -63,20 +64,6 @@ def generate_fake_data():
 
     inputs = np.array(inputs).reshape(100, 2)
     outputs = np.array(outputs).reshape(100, 1)
-
-    comon_result_properties = {
-        "unscaled_x": inputs,
-        "unscaled_y": outputs,
-        "unscaled_x_df": pandas.DataFrame(inputs, columns=metadata.get("input")),
-        "unscaled_y_df": pandas.DataFrame(outputs, columns=metadata.get("output")),
-        "timestamps_labels": timestamps_labels,
-        "tss": timestamps_labels,
-        "data": {},
-        "shape": (2, 1),
-        "selected_servers_names_raw": selected_servers_names_raw,
-        "servers_names_raw": selected_servers_names_raw,
-        "metadata": metadata
-    }
 
     scaler = None
 
@@ -88,19 +75,24 @@ def generate_fake_data():
     all_non_scaled_values = np.append(all_non_scaled_values, outputs, axis=1)
     scaled_values = scaler.fit_transform(all_non_scaled_values)
 
+    unscaled_x, unscaled_y = all_non_scaled_values[:, :input_columns_count], all_non_scaled_values[:, -output_columns_count:]
     scaled_x, scaled_y = scaled_values[:, :input_columns_count], scaled_values[:, -output_columns_count:]
 
-    additional_result_properties = {
-        "x": scaled_x,
-        "y": scaled_y,
-        "x_df": pandas.DataFrame(scaled_x, columns=metadata.get("input")),
-        "y_df": pandas.DataFrame(scaled_y, columns=metadata.get("output")),
-        "scaler": scaler
-    }
+    # Create dataframes with all data
+    complete_data_scaled = pandas.concat([pandas.DataFrame(scaled_x, columns=metadata.get("input")),
+                                          pandas.DataFrame(scaled_y, columns=metadata.get("output")),
+                                          pandas.DataFrame(timestamps_labels, columns=["timestamp"])],
+                                         axis=1)
+    complete_data_unscaled = pandas.concat([pandas.DataFrame(unscaled_x, columns=metadata.get("input")),
+                                            pandas.DataFrame(unscaled_y, columns=metadata.get("output")),
+                                            pandas.DataFrame(timestamps_labels, columns=["timestamp"])],
+                                           axis=1)
 
-    result = {**comon_result_properties, **additional_result_properties}
+    # Export the complete dataframe to csv
+    complete_data_scaled.to_csv("tests_data/complete_data_scaled.csv")
+    complete_data_unscaled.to_csv("tests_data/complete_data_unscaled.csv")
 
-    return result
+    return DataResult(SERVERS, metadata, (100, 2), (100, 1), scaler, "tests_data/complete_data_scaled.csv", "tests_data/complete_data_unscaled.csv")
 
 
 class FakeOracle(Oracle):
@@ -109,4 +101,4 @@ class FakeOracle(Oracle):
         Oracle.__init__(self, scaler, metadata, params)
 
     def predict(self, unscaled_input_values):
-        return np.sum(unscaled_input_values).reshape(1, 1)
+        return np.sum(unscaled_input_values).reshape(1, 1) + 0.1

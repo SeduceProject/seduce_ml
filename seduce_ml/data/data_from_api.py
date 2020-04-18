@@ -66,15 +66,18 @@ def get_additional_variables_multiple_servers(server_ids, learning_method):
 def generate_real_consumption_data(start_date=None,
                                    end_date=None,
                                    show_progress=True,
-                                   data_file_path=None,
+                                   data_folder_path=None,
                                    group_by=60,
                                    scaler=None,
                                    use_scaler=True,
                                    server_id=None,
                                    server_ids=None,
                                    learning_method=None):
-    if data_file_path is None:
-        data_file_path = "data/data_60m.json"
+
+    if data_folder_path is None:
+        raise Exception("Please specify 'data_folder_path' parameter")
+
+    data_file_path = f"{ data_folder_path }/data_{ group_by }m.json"
 
     seduce_infrastructure_tree = requests.get("https://api.seduce.fr/infrastructure/description/tree").json()
 
@@ -334,7 +337,11 @@ def generate_real_consumption_data(start_date=None,
                          for tuple_2 in zip(data["timestamps"], data[key])
                          if tuple_2[0] not in filter_timestamps]
 
-        with open(data_file_path, "w+") as data_file:
+        if not os.path.exists(data_file_path):
+            permission_mode = "w"
+        else:
+            permission_mode ="w+"
+        with open(data_file_path, permission_mode) as data_file:
             json.dump(data, data_file)
     else:
         with open(data_file_path, "r") as data_file:
@@ -460,11 +467,6 @@ def generate_real_consumption_data(start_date=None,
     output_columns_count = y.shape[1]
 
     comon_result_properties = {
-        # "timestamps_labels": timestamps_labels,
-        # "tss": timestamps_labels,
-        # "data": data,
-        # "shape": shape,
-        # "selected_servers_names_raw": selected_servers_names_raw,
         "servers_hostnames": selected_servers_names_raw,
         "metadata": metadata,
         "input_shape": x.shape,
@@ -496,12 +498,12 @@ def generate_real_consumption_data(start_date=None,
                                            axis=1)
 
     # Export the complete dataframe to csv
-    complete_data_scaled.to_csv("complete_data_scaled.csv")
-    complete_data_unscaled.to_csv("complete_data_unscaled.csv")
+    complete_data_scaled.to_csv(f"{ data_folder_path }/complete_data_scaled.csv")
+    complete_data_unscaled.to_csv(f"{ data_folder_path }/complete_data_unscaled.csv")
 
     csv_export_properties = {
-        "complete_data_scaled_path": "complete_data_scaled.csv",
-        "complete_data_unscaled_path": "complete_data_unscaled.csv"
+        "complete_data_scaled_path": f"{ data_folder_path }/complete_data_scaled.csv",
+        "complete_data_unscaled_path": f"{ data_folder_path }/complete_data_unscaled.csv"
     }
 
     result = {**comon_result_properties, **additional_result_properties, **csv_export_properties}
