@@ -16,7 +16,7 @@ class GradientBoostRegressorOracle(Oracle):
         x_train = data.scaled_train_df[data.metadata.get("input")].to_numpy()
         y_train = data.scaled_train_df[data.metadata.get("output")].to_numpy()
 
-        for idx, output_variable_name in enumerate(self.metadata.get("output")):
+        for idx, _ in enumerate(self.metadata.get("output")):
 
                 y_train_this_column = y_train[:, idx]
 
@@ -32,8 +32,8 @@ class GradientBoostRegressorOracle(Oracle):
 
         self.state = "TRAINED"
 
-    def predict(self, x_input):
-        rescaled_x_input = rescale_input(x_input.reshape(1, len(self.metadata.get("input"))), self.scaler, self.metadata.get("variables"))
+    def predict(self, unscaled_input_values):
+        rescaled_x_input = rescale_input(unscaled_input_values.reshape(1, len(self.metadata.get("input"))), self.scaler, self.metadata.get("variables"))
 
         result = []
 

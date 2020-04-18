@@ -13,7 +13,7 @@ IGNORE_PATTERNS = ["_I_AC", "_P_AC", "b232", "net_", "apparent", "reactive", "ba
 
 
 def get_additional_variables(server_id, learning_method):
-    cluster, server_num_str = server_id.split("-")
+    _, server_num_str = server_id.split("-")
     server_num = int(server_num_str)
 
     variables = [
@@ -150,7 +150,7 @@ def generate_real_consumption_data(start_date=None,
 
             try:
                 _dump_data = requests.get(_dump_data_url).json()
-            except:
+            except Exception as e:
                 # print(f"There was an error fetching data at this url: '{_dump_data_url}'. I will continue")
                 print('x', end='')
                 continue
@@ -458,8 +458,6 @@ def generate_real_consumption_data(start_date=None,
 
     input_columns_count = x.shape[1]
     output_columns_count = y.shape[1]
-
-    shape = (input_columns_count, output_columns_count)
 
     comon_result_properties = {
         # "timestamps_labels": timestamps_labels,

@@ -16,13 +16,13 @@ class AutoGluonProcessOracle(Oracle):
         #self.train_data = self.train_data.head(500)  # subsample 500 data points for faster demo
         print(self.train_data.head())
 
-        dir = f'agModels-predictClass/{uuid.uuid4()}'  # specifies folder where to store trained models
-        self.predictor = task.fit(train_data=self.train_data, label=self.metadata.get("output")[0], output_directory=dir)
+        autogluon_dir = f'agModels-predictClass/{uuid.uuid4()}'  # specifies folder where to store trained models
+        self.predictor = task.fit(train_data=self.train_data, label=self.metadata.get("output")[0], output_directory=autogluon_dir)
 
         self.state = "TRAINED"
 
-    def predict(self, x_input):
-        x_input_df = pandas.DataFrame(x_input.reshape(1, len(self.metadata.get("input"))), columns=self.metadata.get("input"))
+    def predict(self, unscaled_input_values):
+        x_input_df = pandas.DataFrame(unscaled_input_values.reshape(1, len(self.metadata.get("input"))), columns=self.metadata.get("input"))
         y_pred = self.predictor.predict(x_input_df)
         return y_pred.reshape(1, len(self.metadata.get("output")))
 

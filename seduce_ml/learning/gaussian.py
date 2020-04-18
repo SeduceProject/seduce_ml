@@ -27,10 +27,10 @@ class GaussianProcessOracle(Oracle):
 
         self.state = "TRAINED"
 
-    def predict(self, x_input):
+    def predict(self, unscaled_input_values):
         # Make the prediction on the meshed x-axis (ask for MSE as well)
-        rescaled_x_input = rescale_input(x_input.reshape(1, len(self.metadata.get("input"))), self.scaler, self.metadata.get("variables"))
+        rescaled_x_input = rescale_input(unscaled_input_values.reshape(1, len(self.metadata.get("input"))), self.scaler, self.metadata.get("variables"))
 
-        y_pred, sigma = self.gp.predict(rescaled_x_input, return_std=True)
+        y_pred, _ = self.gp.predict(rescaled_x_input, return_std=True)
         rescaled_result = unscale_output(y_pred, self.scaler, self.metadata.get("variables"))
         return rescaled_result.reshape(1, len(self.metadata.get("output")))

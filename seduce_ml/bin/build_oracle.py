@@ -31,8 +31,6 @@ def train(params, tmp_figures_folder, server_id, one_oracle_per_output):
                                        server_id=server_id,
                                        learning_method=learning_method)
 
-    nb_inputs, nb_outputs = consumption_data.input_shape[1], consumption_data.input_shape[1] + consumption_data.output_shape[1]
-
     consumption_data.load_data()
     consumption_data.split_train_and_test_data()
 
@@ -42,7 +40,7 @@ def train(params, tmp_figures_folder, server_id, one_oracle_per_output):
                                 metadata=consumption_data.metadata,
                                 params=params)
 
-    result = evaluate_prediction_power(
+    evaluate_prediction_power(
         consumption_data,
         server_id=server_id,
         tmp_figures_folder=tmp_figures_folder,
@@ -86,7 +84,7 @@ def train(params, tmp_figures_folder, server_id, one_oracle_per_output):
 
     sorted_plot_data = sorted(best_plot_data, key=lambda d: d["x"])[start_step:end_step]
 
-    fig = plt.figure()
+    # fig = plt.figure()
     ax = plt.axes()
 
     x_data = [d["x"] for d in sorted_plot_data]
@@ -188,7 +186,7 @@ if __name__ == "__main__":
         os.makedirs(tmp_figures_folder)
 
     with open("seduce_ml.yaml") as file:
-        PARAMS = yaml.load(file)
+        PARAMS = yaml.safe_load(file)
 
         learning_method = PARAMS.get("seduce_ml").get("learning_method")
 

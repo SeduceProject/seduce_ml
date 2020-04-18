@@ -1,4 +1,4 @@
-from flask import Flask, escape, request
+from flask import Flask
 import flask
 
 app = Flask(__name__)
