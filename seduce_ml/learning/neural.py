@@ -28,20 +28,22 @@ def build_oracle(nb_inputs, nb_outputs, hidden_layers_count=1, neurons_per_hidde
     return model
 
 
-def train_oracle(oracle, data, epochs, batch_size):
+def train_oracle(oracle, data, params):
     # oracle.fit(data.get("x"),
                # data.get("y"),
                # epochs=epochs,
                # batch_size=batch_size)
 
     from keras.callbacks import EarlyStopping
-    overfitCallback = EarlyStopping(monitor='loss', min_delta=0.00001, patience=200)
+    overfitCallback = EarlyStopping(monitor='loss',
+                                    min_delta=params.get("configuration").get("neural").get("min_delta"),
+                                    patience=params.get("configuration").get("neural").get("patience"))
     oracle.fit(data.get("x"),
                data.get("y"),
-               epochs=100000000,
+               epochs=params.get("configuration").get("neural").get("max_epoch"),
                # epochs=10,
                callbacks=[overfitCallback],
-               batch_size=batch_size)
+               batch_size=params.get("configuration").get("neural").get("batch_size"))
 
     oracle.compile(optimizer='rmsprop',
                    loss='mse')
@@ -75,8 +77,7 @@ class NeuralNetworkOracle(Oracle):
                          "x": x_train,
                          "y": y_train
                      },
-                     params.get("epoch"),
-                     data.scaled_train_df.shape[0])
+                     params)
 
         self.oracle = oracle
 

@@ -1,3 +1,4 @@
+import autogluon as ag
 import uuid
 import pandas
 from autogluon import TabularPrediction as task
@@ -13,8 +14,6 @@ class AutoGluonProcessOracle(Oracle):
         self.data = data
 
         self.train_data = task.Dataset(data.unscaled_df)
-        #self.train_data = self.train_data.head(500)  # subsample 500 data points for faster demo
-        print(self.train_data.head())
 
         autogluon_dir = f'agModels-predictClass/{uuid.uuid4()}'  # specifies folder where to store trained models
         self.predictor = task.fit(train_data=self.train_data, label=self.metadata.get("output")[0], output_directory=autogluon_dir)
@@ -35,8 +34,8 @@ class AutoGluonProcessOracle(Oracle):
     def _predict_nsteps_in_future(self, original_data_arrays, data_arrays, nsteps, n=0):
 
         if n == 0:
-            original_data = self._clean_past_output_values(original_data_arrays)
-            data = self._clean_past_output_values(data_arrays)
+            original_data_arrays = self._clean_past_output_values(original_data_arrays)
+            data_arrays = self._clean_past_output_values(data_arrays)
 
         variables_that_travels = [var for var in self.metadata.get("variables") if var.get("become") is not None]
         step_result = self.predict_all(data_arrays[:, n, :])

@@ -1,6 +1,8 @@
 seduce_ml:
-  learning_method: neural
+#  learning_method: neural
+#  learning_method: autogluon
 #  learning_method: knearest
+  learning_method: gaussian
   group_by: 30
   network_path: "last"
   start_date: "2020-02-01T00:00:00.000Z"
@@ -9,6 +11,7 @@ seduce_ml:
   validation_end_date: "2020-03-31T17:00:00.000Z"
   shuffle: true
   use_scaler: true
+  output_csv: "csv"
 configuration:
   neural:
     epoch_count: 3000
@@ -16,5 +19,8 @@ configuration:
     layers_count: 1
     neurons_per_layer: 12
     activation_function: "tanh"
+    max_epoch: 1000
+    patience: 200
+    min_delta: 0.0001
   knearest:
     neighbours_count: 5

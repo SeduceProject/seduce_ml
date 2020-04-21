@@ -1,9 +1,10 @@
 import pandas
+import os
 import matplotlib.pyplot as plt
 from seduce_ml.data.scaling import *
 
 
-def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=None, figure_label="", produce_figure=True, oracle_object=None, group_by=-1):
+def evaluate_prediction_power(consumption_data, server_id, params=None, tmp_figures_folder=None, figure_label="", produce_figure=True, oracle_object=None, group_by=-1):
 
     if oracle_object is None:
         raise Exception("Please provide an oracle_object")
@@ -35,14 +36,14 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
 
         predicted_temps = oracle_object.predict_all_nsteps_in_future(grouped_rows_array, nsteps=i)
 
-        expected_temps = unscaled_y
+        expected_temps = unscaled_y[i:]
 
         plot_data = [
             {
                 "x": idx,
-                "temp_actual": et,
+                "temp_expected": et,
                 "temp_pred": pt,
-                "ts_to_date": tss[idx]
+                "ts": tss[idx]
             }
             for idx, (et, pt) in enumerate(zip(expected_temps, predicted_temps))
         ]
@@ -58,23 +59,23 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
         series_as_dataframe.to_csv(f"probes.csv",
                                    columns=variables_names)
 
-        if tmp_figures_folder is not None and produce_figure:
+        sorted_plot_data = sorted(plot_data, key=lambda d: d["x"])[start_step:end_step]
 
-            sorted_plot_data = sorted(plot_data, key=lambda d: d["x"])[start_step:end_step]
+        y_expected_temperatures = [d["temp_expected"][server_idx] for d in sorted_plot_data]
+        y_predicted_temperatures = [d["temp_pred"][server_idx] for d in sorted_plot_data]
+
+        if tmp_figures_folder is not None and produce_figure:
 
             fig = plt.figure()
             ax = plt.axes()
 
-            y1_data = [d["temp_actual"][server_idx] for d in sorted_plot_data]
-            y2_data = [d["temp_pred"][server_idx] for d in sorted_plot_data]
-
-            dts = [d["ts_to_date"] for d in sorted_plot_data]
+            dts = [d["ts"] for d in sorted_plot_data]
 
             sorted_dts = sorted(dts)
             sorted_dts = sorted_dts[0:len(sorted_plot_data)]
 
-            ax.plot(sorted_dts, y1_data, color='blue', label='actual temp.', linewidth=0.5)
-            ax.plot(sorted_dts, y2_data, color='red', label='predicted temp.', alpha=0.5, linewidth=0.5)
+            ax.plot(sorted_dts, y_expected_temperatures, color='blue', label='actual temp.', linewidth=0.5)
+            ax.plot(sorted_dts, y_predicted_temperatures, color='red', label='predicted temp.', alpha=0.5, linewidth=0.5)
 
             plt.legend()
 
@@ -105,11 +106,11 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
             # y1_pandas_diff = pandas.DataFrame()
             # ax1.acorr(y2_data, maxlags=9)
 
-            differential_dataframe = pandas.DataFrame(y1_data)\
+            differential_dataframe = pandas.DataFrame(y_expected_temperatures)\
                 .diff().rename(columns={0: "diff"}).abs()\
                 .rolling(5, win_type='triang').sum()\
-                .assign(y1_data=y1_data)\
-                .assign(y2_data=y2_data)
+                .assign(y1_data=y_expected_temperatures)\
+                .assign(y2_data=y_predicted_temperatures)
 
             top_095_quantile = differential_dataframe.quantile(0.80)
             filtered_dataframe = differential_dataframe.query(f"diff >= {top_095_quantile['diff']}")
@@ -126,5 +127,24 @@ def evaluate_prediction_power(consumption_data, server_id, tmp_figures_folder=No
                         .replace(" ", "_")
                         )
             plt.close('all')
+
+        if params and "output_csv" in params.get("seduce_ml") and produce_figure:
+            output_csv_path = params.get("seduce_ml").get("output_csv")
+            csv_file_path = f"{output_csv_path}/data_{ i }_steps.csv"
+
+            if not os.path.exists(output_csv_path):
+                os.makedirs(output_csv_path)
+
+            df = pandas.DataFrame()
+            if os.path.exists(csv_file_path):
+                df = pandas.read_csv(csv_file_path, parse_dates=["timestamp"], index_col=0)
+
+            server_id_underscore = server_id.replace("-", "_")
+
+            df[f"timestamp"] = [d["ts"] for d in sorted_plot_data]
+            df[f"{ params.get('seduce_ml').get('learning_method') }_{server_id_underscore}_predicted"] = [d["temp_pred"][server_idx] for d in sorted_plot_data]
+            df[f"{ params.get('seduce_ml').get('learning_method') }_{server_id_underscore}_expected"] = [d["temp_expected"][server_idx] for d in sorted_plot_data]
+
+            df.to_csv(csv_file_path)
 
     return True

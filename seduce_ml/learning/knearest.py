@@ -11,7 +11,7 @@ class KNearestOracle(Oracle):
         self.data = data
         self.state = "TRAINED"
 
-    def _distance(x_input, x_train):
+    def _distance(self, x_input, x_train):
         return np.sqrt(np.sum((x_train - x_input) ** 2, axis=1))
 
     def predict(self, unscaled_input_values):
