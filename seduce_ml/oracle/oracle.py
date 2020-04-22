@@ -4,6 +4,7 @@ import time
 from seduce_ml.data.data_from_api import generate_real_consumption_data
 from seduce_ml.validation.validation import evaluate_prediction_power
 from seduce_ml.data.scaling import *
+from abc import abstractmethod
 
 
 def build_new_oracle(params, tmp_figures_folder, server_id):
@@ -260,9 +261,11 @@ class Oracle(object):
     def get_state(self):
         return self.state
 
+    @abstractmethod
     def train(self, data, params):
         raise Exception("Not yet implemented!")
 
+    @abstractmethod
     def predict(self, unscaled_input_values):
         raise Exception("Not yet implemented!")
 

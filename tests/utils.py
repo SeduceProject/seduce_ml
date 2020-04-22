@@ -41,8 +41,6 @@ METADATA = {
 def generate_fake_data():
     now = datetime.datetime.now()
 
-    selected_servers_names_raw = SERVERS
-
     metadata = METADATA
 
     input_columns_count = 2

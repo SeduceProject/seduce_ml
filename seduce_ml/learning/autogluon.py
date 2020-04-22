@@ -1,4 +1,3 @@
-import autogluon as ag
 import uuid
 import pandas
 from autogluon import TabularPrediction as task

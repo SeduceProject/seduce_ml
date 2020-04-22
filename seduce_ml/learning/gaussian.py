@@ -1,4 +1,5 @@
-from sklearn.gaussian_process.kernels import RBF, DotProduct, WhiteKernel, ConstantKernel
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel
+# from sklearn.gaussian_process.kernels import DotProduct, WhiteKernel
 from sklearn.gaussian_process import GaussianProcessRegressor
 from seduce_ml.oracle.oracle import Oracle
 from seduce_ml.data.scaling import *

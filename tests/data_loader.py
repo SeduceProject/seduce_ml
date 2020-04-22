@@ -7,6 +7,13 @@ import shutil
 import pandas
 
 
+def _find_mock_data_folder(self):
+    for dirpath, dirnames, _ in os.walk("."):
+        if "mock_data" in dirnames:
+            return os.path.join(dirpath, "mock_data")
+    return None
+
+
 class TestDataLoader(unittest.TestCase):
 
     def setUp(self):
@@ -22,12 +29,6 @@ class TestDataLoader(unittest.TestCase):
             shutil.rmtree(f"{DATA_TEST_FOLDER}")
         if os.path.exists(f"{FIGURE_TEST_FOLDER}"):
             shutil.rmtree(f"{FIGURE_TEST_FOLDER}")
-
-    def _find_mock_data_folder(self):
-        for dirpath, dirnames, filenames in os.walk("."):
-            if "mock_data" in dirnames:
-                return os.path.join(dirpath, "mock_data")
-        return None
 
     def test_predict_nsteps_in_future(self):
 
@@ -49,7 +50,7 @@ class TestDataLoader(unittest.TestCase):
 
         last_data.load_data()
 
-        MOCK_DATA_FOLDER = self._find_mock_data_folder()
+        MOCK_DATA_FOLDER = _find_mock_data_folder()
 
         mock_data_scaled_df = pandas.read_csv(f"{ MOCK_DATA_FOLDER }/complete_data_scaled.csv", parse_dates=["timestamp"])
         mock_data_unscaled_df = pandas.read_csv(f"{ MOCK_DATA_FOLDER }/complete_data_unscaled.csv", parse_dates=["timestamp"])
