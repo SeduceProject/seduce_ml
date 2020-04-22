@@ -24,7 +24,7 @@ class TestValidation(unittest.TestCase):
         data = self.fake_data
         oracle = self.fake_oracle
 
-        evaluate_prediction_power(data, "ecotype-1", "tests_data", "title=test_data", True, oracle, group_by=30)
+        evaluate_prediction_power(data, "ecotype-1", {}, "tests_data", "title=test_data", True, oracle, group_by=30)
 
         FILES_THAT_SHOULD_EXIST = [
             "tests_data/ecotype-1_title=test_data_auto_correlation_and_cross_correlation.pdf",

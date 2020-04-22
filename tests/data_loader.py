@@ -7,7 +7,7 @@ import shutil
 import pandas
 
 
-def _find_mock_data_folder(self):
+def _find_mock_data_folder():
     for dirpath, dirnames, _ in os.walk("."):
         if "mock_data" in dirnames:
             return os.path.join(dirpath, "mock_data")
