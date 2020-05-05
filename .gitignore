@@ -18,6 +18,7 @@ agModels-predictClass
 catboost_info
 dask-worker-space
 tests_data
+output
 
 tests/tests_data
 
